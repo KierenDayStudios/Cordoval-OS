@@ -5,6 +5,10 @@
   "main": "./out/main/index.js",
   "author": "Kieren Day Studios \u003chello@kierendaystudios.co.uk\u003e",
   "homepage": "https://kierendaystudios.co.uk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KierenDayStudios/Cordoval-OS.git"
+  },
   "license": "MIT",
   "scripts": {
     "format": "prettier --write .",
