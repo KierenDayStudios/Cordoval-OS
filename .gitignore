@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+out
+release
+
+# System files
+.DS_Store
+.eslintcache
+*.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# OS
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Electron
+*.asar
+electron-builder-effective-config.yaml

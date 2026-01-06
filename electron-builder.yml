@@ -1,0 +1,88 @@
+appId: com.kierendaystudios.cordovalos
+productName: Cordoval OS
+directories:
+  buildResources: build
+  output: release/${version}
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!release/*'
+asarUnpack:
+  - resources/**
+
+# Windows Configuration
+win:
+  icon: build/icon.png
+  executableName: CordovalOS
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+# NSIS Installer Configuration
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-Setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  perMachine: false
+  installerIcon: build/icon.png
+  uninstallerIcon: build/icon.png
+  license: LICENSE
+  warningsAsErrors: false
+
+# Portable Version
+portable:
+  artifactName: ${productName}-${version}-Portable.${ext}
+
+# macOS Configuration (for future)
+mac:
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSCameraUsageDescription: Application requests access to the device's camera.
+    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
+    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
+    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  notarize: false
+dmg:
+  artifactName: ${name}-${version}.${ext}
+
+# Linux Configuration (for future)
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: Kieren Day Studios
+  category: Utility
+appImage:
+  artifactName: ${name}-${version}.${ext}
+
+npmRebuild: false
+
+# Auto-Update Configuration
+# For GitHub Releases (recommended for free hosting)
+publish:
+  provider: github
+  owner: KierenDayStudios
+  repo: Cordoval-OS
+  releaseType: release
+
+# Uncomment below for custom server hosting
+# publish:
+#   provider: generic
+#   url: https://your-domain.com/releases/
+#   channel: latest
+
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
