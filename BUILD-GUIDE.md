@@ -43,7 +43,7 @@ This creates a Windows installer in `release/[version]/` directory.
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin https://github.com/YOUR_USERNAME/cordoval-os.git
+   git remote add origin https://github.com/KierenDayStudios/Cordoval-OS.git
    git push -u origin main
    ```
 
@@ -52,7 +52,7 @@ This creates a Windows installer in `release/[version]/` directory.
    ```yaml
    publish:
      provider: github
-     owner: YOUR_GITHUB_USERNAME  # <- Change this
+     owner: KierenDayStudios
      repo: cordoval-os
    ```
 
@@ -93,7 +93,7 @@ If you want to host updates on your own server:
    ```yaml
    # publish:
    #   provider: github
-   #   owner: YOUR_GITHUB_USERNAME
+   #   owner: KierenDayStudios
    #   repo: cordoval-os
    
    publish:
@@ -226,7 +226,7 @@ In `src/main/index.ts`, comment out:
 
 After releasing to GitHub, share this link:
 ```
-https://github.com/YOUR_USERNAME/cordoval-os/releases/latest
+https://github.com/KierenDayStudios/Cordoval-OS/releases/latest
 ```
 
 Users can download:

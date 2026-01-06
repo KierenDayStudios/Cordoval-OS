@@ -10,7 +10,7 @@ git add .
 git commit -m "Initial release"
 
 # Create repo on GitHub, then:
-git remote add origin https://github.com/YOUR_USERNAME/cordoval-os.git
+git remote add origin https://github.com/KierenDayStudios/Cordoval-OS.git
 git push -u origin main
 ```
 
@@ -36,7 +36,7 @@ Edit `electron-builder.yml` line 77-79:
 ```yaml
 publish:
   provider: github
-  owner: YOUR_GITHUB_USERNAME  # <- CHANGE THIS!
+  owner: KierenDayStudios
   repo: cordoval-os
 ```
 
@@ -84,7 +84,7 @@ Find installers in: `release/1.0.0/`
 
 After release, share:
 ```
-https://github.com/YOUR_USERNAME/cordoval-os/releases/latest
+https://github.com/KierenDayStudios/Cordoval-OS/releases/latest
 ```
 
 ---

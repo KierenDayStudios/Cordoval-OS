@@ -77,7 +77,7 @@ npm run release
 git init
 git add .
 git commit -m "Initial release v1.0.0"
-git remote add origin https://github.com/YOUR_USERNAME/cordoval-os.git
+git remote add origin https://github.com/KierenDayStudios/Cordoval-OS.git
 git push -u origin main
 ```
 
@@ -92,7 +92,7 @@ Edit `electron-builder.yml` (lines 77-80):
 ```yaml
 publish:
   provider: github
-  owner: YOUR_GITHUB_USERNAME  # ← CHANGE THIS!
+  owner: KierenDayStudios
   repo: cordoval-os
   releaseType: release
 ```
@@ -144,7 +144,7 @@ After building, find these files in `release/1.0.0/`:
 ### Share Download Link
 After releasing to GitHub:
 ```
-https://github.com/YOUR_USERNAME/cordoval-os/releases/latest
+https://github.com/KierenDayStudios/Cordoval-OS/releases/latest
 ```
 
 ### Auto-Updates

@@ -27,7 +27,7 @@ Built by **Kieren Day Studios** - Making business operations seamless.
 
 **Download the latest release:**
 ```
-https://github.com/YOUR_USERNAME/cordoval-os/releases/latest
+https://github.com/KierenDayStudios/Cordoval-OS/releases/latest
 ```
 
 Choose:
