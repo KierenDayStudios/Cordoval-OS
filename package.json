@@ -1,6 +1,6 @@
 {
   "name": "cordoval-os",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Cordoval Business Operating System - A powerful desktop environment by Kieren Day Studios",
   "main": "./out/main/index.js",
   "author": "Kieren Day Studios <hello@kierendaystudios.co.uk>",
