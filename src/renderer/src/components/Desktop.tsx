@@ -5,6 +5,8 @@ import { FileExplorer } from './FileExplorer';
 import { KDSBrowser } from './KDSBrowser';
 import { Settings } from './Settings';
 import { useUser } from '../context/UserContext';
+import { Calculator } from './Calculator';
+import { CalendarApp } from './Calendar';
 
 // --- TypeScript Definitions ---
 // (We can skip global declaration if it's already in env.d.ts or similar, but let's keep it safe)
@@ -324,6 +326,18 @@ export const Desktop = () => {
         openApp(explorerId, 'File Explorer', '📁', <FileExplorer />);
     };
 
+    const openCalculator = () => {
+        const calcId = 'calculator';
+        if (windows.find(w => w.id === calcId)) { focusWindow(calcId); return; }
+        openApp(calcId, 'Calculator', '🧮', <Calculator />);
+    };
+
+    const openCalendarApp = () => {
+        const calId = 'calendar-app';
+        if (windows.find(w => w.id === calId)) { focusWindow(calId); return; }
+        openApp(calId, 'Calendar', '📅', <CalendarApp />);
+    };
+
     const openSettings = () => {
         const settingsId = 'settings';
         if (windows.find(w => w.id === settingsId)) { focusWindow(settingsId); return; }
@@ -565,7 +579,8 @@ export const Desktop = () => {
 
                             <div className="start-apps-grid-title" style={{ marginTop: 25 }}>System Utilities</div>
                             <div className="start-apps-grid">
-                                <StartAppItem name="Calculator" icon="🧮" onClick={() => launchExe('calc.exe')} />
+                                <StartAppItem name="Calculator" icon="🧮" onClick={openCalculator} />
+                                <StartAppItem name="Calendar" icon="📅" onClick={openCalendarApp} />
                                 <StartAppItem name="CMD" icon="💻" onClick={() => launchExe('start cmd.exe')} />
                             </div>
                         </div>
@@ -587,7 +602,10 @@ export const Desktop = () => {
             )}
 
             <div className="taskbar" onClick={(e) => e.stopPropagation()}>
-                <div className={`taskbar-icon ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)} style={{ fontSize: 26, color: '#444' }}>💠</div>
+                <div className={`taskbar-icon ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)}
+                    style={{ fontSize: 26, color: 'white', background: '#000', borderRadius: '50%', width: 42, height: 42 }}>
+                    💠
+                </div>
                 {windows.map(win => (
                     <div key={win.id} className={`taskbar-icon ${activeWindowId === win.id && !win.isMinimized ? 'active' : ''}`}
                         onClick={() => win.isMinimized ? focusWindow(win.id) : toggleMinimize(win.id)}>
@@ -945,7 +963,7 @@ const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accent
         setIsLoading(true);
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -967,6 +985,11 @@ const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accent
             });
 
             const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message || "API Error");
+            }
+
             const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
 
             // Handle system commands
@@ -976,8 +999,8 @@ const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accent
             if (reply.includes('[OPEN:SETTINGS]')) openSettings();
 
             setMessages(prev => [...prev, { role: 'noah', content: reply.replace(/\[OPEN:.*\]/g, '').trim() }]);
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'noah', content: "Error: Make sure your API key is valid and you're online." }]);
+        } catch (error: any) {
+            setMessages(prev => [...prev, { role: 'noah', content: `Error: ${error.message || "Something went wrong"}` }]);
         } finally {
             setIsLoading(false);
         }
