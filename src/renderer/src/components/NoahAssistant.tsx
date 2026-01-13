@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { ModernIcon } from './ModernIcon'
-import { AIService, ChatMessage } from '../services/AIService'
+import { AIService, ChatMessage, loadNoahMemory, saveNoahMemory } from '../services/AIService'
 
 interface NoahAssistantProps {
   userId: string
@@ -8,6 +8,7 @@ interface NoahAssistantProps {
   onClose: () => void
   onOpen: () => void
   onOpenAppById?: (appId: string) => void
+  onGenerateApp?: (appName: string, code: string) => void
 }
 
 export const NoahAssistant: React.FC<NoahAssistantProps> = ({
@@ -15,7 +16,8 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
   isOpen,
   onClose,
   onOpen,
-  onOpenAppById
+  onOpenAppById,
+  onGenerateApp
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -62,6 +64,17 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     isSpeakingRef.current = isSpeaking
   }, [isSpeaking])
 
+  // Pre-load voices
+  useEffect(() => {
+    const loadVoices = (): void => {
+      window.speechSynthesis.getVoices()
+    }
+    loadVoices()
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices
+    }
+  }, [])
+
   const speak = (text: string): void => {
     if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
@@ -71,8 +84,14 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     utterance.pitch = 1.0
 
     const voices = window.speechSynthesis.getVoices()
+    // Prioritize natural sounding voices
     const preferredVoice =
-      voices.find((v) => v.name.includes('Google') || v.name.includes('Premium')) || voices[0]
+      voices.find((v) => v.name.includes('Google US English') && v.name.includes('Male')) ||
+      voices.find((v) => v.name.includes('Google') || v.name.includes('Natural')) ||
+      voices.find((v) => v.lang.startsWith('en-US')) ||
+      voices.find((v) => v.lang.startsWith('en')) ||
+      voices[0]
+
     if (preferredVoice) utterance.voice = preferredVoice
 
     utterance.onstart = () => {
@@ -85,41 +104,71 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     window.speechSynthesis.speak(utterance)
   }
 
-  const handleSend = async (overrideInput?: string): Promise<void> => {
-    const textToSend = overrideInput || input
-    if (!textToSend.trim() || isLoading) return
+  const handleSend = useCallback(
+    async (overrideInput?: string): Promise<void> => {
+      const textToSend = overrideInput || input
+      if (!textToSend.trim() || isLoading) return
 
-    const userMessage: ChatMessage = { role: 'user', content: textToSend }
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
-    setInput('')
-    setIsThinking(true)
-    setIsLoading(true)
+      const userMessage: ChatMessage = { role: 'user', content: textToSend }
+      setMessages((prev) => [...prev, userMessage])
+      setInput('')
+      setIsThinking(true)
+      setIsLoading(true)
 
-    try {
-      const response = await aiService.current.sendMessage(newMessages)
+      try {
+        const currentMessages = [...messages, userMessage]
+        const response = await aiService.current.sendMessage(currentMessages)
 
-      const appMatch = response.match(/\[COMMAND:OPEN_APP:(.+?)\]/)
-      if (appMatch && onOpenAppById) {
-        onOpenAppById(appMatch[1].trim())
+        const appMatch = response.match(/\[COMMAND:OPEN_APP:(.+?)\]/)
+        if (appMatch && onOpenAppById) {
+          onOpenAppById(appMatch[1].trim())
+        }
+
+        // Handle Memory Updates
+        const memoryMatches = response.matchAll(/\[COMMAND:SAVE_MEMORY:(.+?):(.+?)\]/g)
+        const currentMemory = loadNoahMemory(userId)
+        let memoryUpdated = false
+        for (const match of memoryMatches) {
+          const key = match[1].trim()
+          const value = match[2].trim()
+          currentMemory[key] = value
+          memoryUpdated = true
+        }
+        if (memoryUpdated) {
+          saveNoahMemory(userId, currentMemory)
+        }
+
+        // Handle App Generation
+        const appGenMatch = response.match(/\[COMMAND:GENERATE_APP:(.+?):([\s\S]+?)\]/)
+        if (appGenMatch && onGenerateApp) {
+          onGenerateApp(appGenMatch[1].trim(), appGenMatch[2].trim())
+        }
+
+        const cleanResponse = response
+          .replace(/\[COMMAND:OPEN_APP:.+?\]/g, '')
+          .replace(/\[COMMAND:SAVE_MEMORY:.+?\]/g, '')
+          .replace(/\[COMMAND:GENERATE_APP:.+?:[\s\S]+?\]/g, '')
+          .trim()
+        setMessages((prev) => [...prev, { role: 'assistant', content: cleanResponse }])
+        speak(cleanResponse)
+      } catch (error: Error | unknown) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `Error: ${(error as Error).message || 'Failed to fetch response'}`
+          }
+        ])
+      } finally {
+        setIsLoading(false)
+        setIsThinking(false)
       }
-
-      const cleanResponse = response.replace(/\[COMMAND:OPEN_APP:.+?\]/g, '').trim()
-      setMessages((prev) => [...prev, { role: 'assistant', content: cleanResponse }])
-      speak(cleanResponse)
-    } catch (error: any) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `Error: ${error.message || 'Failed to fetch response'}` }
-      ])
-    } finally {
-      setIsLoading(false)
-      setIsThinking(false)
-    }
-  }
+    },
+    [input, isLoading, messages, onOpenAppById, onGenerateApp, userId]
+  )
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, _) => {
+    return new Promise((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => {
         const base64String = (reader.result as string).split(',')[1]
@@ -185,10 +234,10 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
       console.error('Mic access denied:', err)
       setSttError('Microphone not available.')
     }
-  }, [isListening, isSpeaking, isLoading, isOpen, onOpen])
+  }, [isListening, isSpeaking, isLoading, isOpen, onOpen, handleSend])
 
   useEffect(() => {
-    const handleStartListening = () => {
+    const handleStartListening = (): void => {
       startListeningForQuery()
     }
     window.addEventListener('noah-start-listening', handleStartListening)
@@ -199,10 +248,14 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
   useEffect(() => {
     let stream: MediaStream | null = null
 
-    const initMonitor = async () => {
+    const initMonitor = async (): Promise<void> => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const audioContext = new (
+          window.AudioContext ||
+          (window as Window & typeof globalThis & { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext
+        )()
         const analyser = audioContext.createAnalyser()
         const source = audioContext.createMediaStreamSource(stream)
         analyser.fftSize = 256
@@ -210,7 +263,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
         source.connect(analyser)
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount)
-        const update = () => {
+        const update = (): void => {
           analyser.getByteFrequencyData(dataArray)
           const sum = dataArray.reduce((s, v) => s + v, 0)
           const average = sum / dataArray.length

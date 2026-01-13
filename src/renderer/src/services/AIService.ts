@@ -21,26 +21,52 @@ export const loadAIConfig = (userId: string): AIConfig | null => {
   }
 }
 
-export const saveAIConfig = (userId: string, config: AIConfig) => {
+export const saveAIConfig = (userId: string, config: AIConfig): void => {
   localStorage.setItem(`${STORAGE_KEY_CONFIG}-${userId}`, JSON.stringify(config))
+}
+
+const STORAGE_KEY_MEMORY = 'noah-brain-memory'
+
+export const loadNoahMemory = (userId: string): Record<string, string> => {
+  try {
+    const saved = localStorage.getItem(`${STORAGE_KEY_MEMORY}-${userId}`)
+    return saved ? JSON.parse(saved) : {}
+  } catch {
+    return {}
+  }
+}
+
+export const saveNoahMemory = (userId: string, memory: Record<string, string>): void => {
+  localStorage.setItem(`${STORAGE_KEY_MEMORY}-${userId}`, JSON.stringify(memory))
 }
 
 export class AIService {
   private config: AIConfig | null
 
+  private userId: string
+
   constructor(userId: string) {
+    this.userId = userId
     this.config = loadAIConfig(userId)
   }
 
-    private getSystemPrompt(): string {
-        return `You are Noah, the advanced AI assistant integrated into Cordoval OS. 
-Cordoval OS is a modern, web-based operating system.
+  private getSystemPrompt(): string {
+    const memory = loadNoahMemory(this.userId)
+    const memoryString =
+      Object.keys(memory).length > 0
+        ? JSON.stringify(memory, null, 2)
+        : 'None yet. You should learn about the user!'
+
+    return `You are Noah, the advanced AI assistant integrated into Cordoval OS.
+Cordoval OS is a modern, high-performance web-based operating system.
 
 Core Capabilities:
-1. You can open applications within the OS based on user requests.
-2. You can help with productivity, business, and general queries.
+1. Open apps using: [COMMAND:OPEN_APP:appId]
+2. LEARN & REMEMBER: You have a long-term memory (Brain). You can save facts, preferences, or notes about the user using: [COMMAND:SAVE_MEMORY:key:value]
+3. Platform Presence: You are part of the Cordoval ecosystem. You know the layout: Taskbar (bottom), Start Menu (left corner), Desktop Widgets (right).
 
-To open an app, you MUST include the exact command in your response: [COMMAND:OPEN_APP:appId]
+Your Current Long-Term Memory (Brain):
+${memoryString}
 
 Available App IDs:
 - workspace (KDS Workspace - Docs, slides, spreadsheets)
@@ -58,13 +84,19 @@ Available App IDs:
 - kds-browser (KDS Web Browser)
 - file-explorer (File Explorer)
 
-Web Apps (will open in a frame):
-- google, bing, duckduckgo, wikipedia, youtube, facebook, x, instagram, reddit, linkedin, whatsapp-web, discord, slack, tiktok, notion, netflix, twitch, spotify, amazon, ebay, canva, github.
+Web Apps (open in frame):
+- google, youtube, facebook, x, reddit, linkedin, discord, slack, notion, spotify, canva, github.
 
-If a user asks to "open the calendar" or "use the calculator", use the respective App IDs.
-Confirm to the user that you are opening the requested application.
-Be professional, helpful, and keep responses concise as they are read aloud.`;
-    }
+Instructions:
+- If the user tells you something important (name, job, preference), call [COMMAND:SAVE_MEMORY:key:value].
+- APP GENERATION: If the user asks for a feature or app that Cordoval doesn't have (e.g., "make me a simple drawing app" or "I need a pomodoro timer"), you can generate a micro-app using: [COMMAND:GENERATE_APP:appName:htmlCode]. 
+- The htmlCode should be a single standalone HTML file containing all necessary CSS and JS. Use modern, sleek aesthetics (Glassmorphism, gradients).
+- If the user wants to edit an app you just made, simply provide the updated [COMMAND:GENERATE_APP:appName:htmlCode] with the changes.
+- If an app is missing, also suggest using the browser: [COMMAND:OPEN_APP:kds-browser].
+- Speak naturally. Be professional yet witty.
+- Keep responses concise for text-to-speech.
+`
+  }
 
   async sendMessage(messages: ChatMessage[]): Promise<string> {
     if (!this.config || !this.config.apiKey) {
