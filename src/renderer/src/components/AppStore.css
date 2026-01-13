@@ -3,8 +3,9 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: linear-gradient(180deg, #0f0f15 0%, #1a1a25 100%);
-    color: white;
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(30px) saturate(180%);
+    color: #333;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -14,8 +15,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 30px;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .store-title {
@@ -26,14 +27,14 @@
 
 .store-icon {
     font-size: 36px;
-    filter: drop-shadow(0 2px 8px rgba(217, 70, 239, 0.5));
+    filter: drop-shadow(0 2px 8px rgba(217, 70, 239, 0.3));
 }
 
 .store-title h1 {
     margin: 0;
     font-size: 24px;
-    font-weight: 600;
-    background: linear-gradient(90deg, #fff, #d946ef);
+    font-weight: 700;
+    background: linear-gradient(90deg, #333, #d946ef);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -42,15 +43,15 @@
 .store-title p {
     margin: 4px 0 0 0;
     font-size: 12px;
-    color: #888;
+    color: rgba(0, 0, 0, 0.5);
 }
 
 .store-search {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     padding: 10px 20px;
     min-width: 350px;
@@ -58,14 +59,14 @@
 }
 
 .store-search:focus-within {
-    background: rgba(255, 255, 255, 0.1);
+    background: #fff;
     border-color: #d946ef;
-    box-shadow: 0 0 20px rgba(217, 70, 239, 0.2);
+    box-shadow: 0 4px 15px rgba(217, 70, 239, 0.15);
 }
 
 .search-icon {
     font-size: 16px;
-    opacity: 0.6;
+    opacity: 0.4;
 }
 
 .store-search input {
@@ -73,12 +74,12 @@
     background: transparent;
     border: none;
     outline: none;
-    color: white;
+    color: #333;
     font-size: 14px;
 }
 
 .store-search input::placeholder {
-    color: #666;
+    color: #999;
 }
 
 /* Body Layout */
@@ -87,15 +88,14 @@
     flex: 1;
     overflow: hidden;
     min-height: 0;
-    /* Important for flex scrolling */
 }
 
 /* Sidebar */
 .store-sidebar {
     width: 240px;
     min-width: 240px;
-    background: rgba(0, 0, 0, 0.2);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.02);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
     padding: 20px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -109,7 +109,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #666;
+    color: rgba(0, 0, 0, 0.4);
     margin: 0 0 12px 0;
 }
 
@@ -122,27 +122,28 @@
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 13px;
-    color: #ccc;
+    color: #555;
 }
 
 .sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: white;
+    background: rgba(0, 0, 0, 0.04);
+    color: #000;
 }
 
 .sidebar-item.active {
-    background: linear-gradient(90deg, rgba(217, 70, 239, 0.15), rgba(139, 92, 246, 0.1));
-    color: white;
-    border-left: 3px solid #d946ef;
+    background: #fff;
+    color: #000;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-item .count {
     margin-left: auto;
     font-size: 11px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
     padding: 2px 8px;
     border-radius: 10px;
-    color: #888;
+    color: #777;
 }
 
 .installed-count {
@@ -150,24 +151,22 @@
     flex-direction: column;
     align-items: center;
     padding: 20px;
-    background: linear-gradient(135deg, rgba(217, 70, 239, 0.1), rgba(139, 92, 246, 0.05));
+    background: rgba(255, 255, 255, 0.5);
     border-radius: 12px;
-    border: 1px solid rgba(217, 70, 239, 0.2);
+    border: 1px solid rgba(217, 70, 239, 0.1);
 }
 
 .installed-count .big-number {
     font-size: 36px;
     font-weight: 700;
-    background: linear-gradient(90deg, #d946ef, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent-color);
 }
 
 .installed-count span:last-child {
     font-size: 12px;
-    color: #888;
+    color: #666;
 }
+
 
 /* Main Content */
 .store-content {
@@ -208,8 +207,8 @@
 }
 
 .app-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 16px;
     padding: 20px;
     cursor: pointer;
@@ -219,34 +218,20 @@
     gap: 15px;
     position: relative;
     overflow: hidden;
-}
-
-.app-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(217, 70, 239, 0.5), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    color: #333;
 }
 
 .app-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(217, 70, 239, 0.3);
+    background: #fff;
+    border-color: rgba(217, 70, 239, 0.2);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
-
-.app-card:hover::before {
-    opacity: 1;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .app-card.installed {
-    border-color: rgba(74, 222, 128, 0.3);
+    border-color: rgba(74, 222, 128, 0.2);
 }
+
 
 .app-card-icon {
     width: 56px;

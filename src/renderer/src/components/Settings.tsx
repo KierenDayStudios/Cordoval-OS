@@ -10,6 +10,10 @@ interface SettingsProps {
     setAccentColor: (color: string) => void;
     currentZoom: number;
     setZoom: (zoom: number) => void;
+    currentUpdateStatus: { status: string; version?: string; percent?: number; message?: string } | null;
+    onCheckUpdate: () => void;
+    onDownloadUpdate: () => void;
+    onInstallUpdate: () => void;
 }
 
 const WALLPAPERS = [
@@ -36,9 +40,13 @@ export const Settings: React.FC<SettingsProps> = ({
     currentAccentColor,
     setAccentColor,
     currentZoom,
-    setZoom
+    setZoom,
+    currentUpdateStatus,
+    onCheckUpdate,
+    onDownloadUpdate,
+    onInstallUpdate
 }) => {
-    const { currentUser } = useUser();
+    useUser();
     const { getChildFiles } = useFileSystem();
     const [activeTab, setActiveTab] = useState('personalization');
 
@@ -64,6 +72,12 @@ export const Settings: React.FC<SettingsProps> = ({
                     label="System Info"
                     active={activeTab === 'info'}
                     onClick={() => setActiveTab('info')}
+                />
+                <SidebarItem
+                    icon="🚀"
+                    label="Updates"
+                    active={activeTab === 'updates'}
+                    onClick={() => setActiveTab('updates')}
                 />
             </div>
 
@@ -197,14 +211,78 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'info' && (
+                {activeTab === 'updates' && (
                     <div>
-                        <h2 style={{ marginBottom: 20 }}>System Information</h2>
-                        <div style={{ background: 'white', padding: 20, borderRadius: 8, boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-                            <p><strong>OS Version:</strong> Cordoval OS v1.0</p>
-                            <p><strong>User:</strong> {currentUser?.name}</p>
-                            <p><strong>Browser Engine:</strong> KDS WebKit</p>
-                            <p><strong>Status:</strong> Online</p>
+                        <h2 style={{ marginBottom: 20, borderBottom: '1px solid #ddd', paddingBottom: 10 }}>Software Updates</h2>
+                        <div style={{ background: 'white', padding: 25, borderRadius: 12, border: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
+                                <div style={{ fontSize: 40 }}>🚀</div>
+                                <div>
+                                    <div style={{ fontSize: 18, fontWeight: 700 }}>Cordoval OS</div>
+                                    <div style={{ fontSize: 13, color: '#666' }}>Version 1.0.0</div>
+                                </div>
+                            </div>
+
+                            {!currentUpdateStatus || currentUpdateStatus.status === 'not-available' ? (
+                                <>
+                                    <div style={{ padding: '15px 20px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', color: '#166534', fontSize: 14, marginBottom: 20 }}>
+                                        🟢 Your system is up to date.
+                                    </div>
+                                    <button
+                                        onClick={onCheckUpdate}
+                                        style={{ padding: '10px 20px', borderRadius: 6, background: '#eee', border: '1px solid #ccc', cursor: 'pointer', fontWeight: 600 }}
+                                    >
+                                        Check for Updates
+                                    </button>
+                                </>
+                            ) : null}
+
+                            {currentUpdateStatus?.status === 'checking' && (
+                                <div style={{ fontSize: 14, color: '#666' }}>Checking for updates...</div>
+                            )}
+
+                            {currentUpdateStatus?.status === 'available' && (
+                                <>
+                                    <div style={{ padding: '15px 20px', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe', color: '#1e40af', fontSize: 14, marginBottom: 20 }}>
+                                        ✨ A new version (v{currentUpdateStatus.version}) is available!
+                                    </div>
+                                    <button
+                                        onClick={onDownloadUpdate}
+                                        style={{ padding: '10px 20px', borderRadius: 6, background: currentAccentColor, color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                                    >
+                                        Download Now
+                                    </button>
+                                </>
+                            )}
+
+                            {currentUpdateStatus?.status === 'downloading' && (
+                                <div>
+                                    <div style={{ fontSize: 14, marginBottom: 10 }}>Downloading update... {Math.round(currentUpdateStatus.percent || 0)}%</div>
+                                    <div style={{ width: '100%', height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
+                                        <div style={{ width: `${currentUpdateStatus.percent}%`, height: '100%', background: currentAccentColor, transition: '0.3s' }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentUpdateStatus?.status === 'downloaded' && (
+                                <>
+                                    <div style={{ padding: '15px 20px', background: '#faf5ff', borderRadius: 8, border: '1px solid #e9d5ff', color: '#6b21a8', fontSize: 14, marginBottom: 20 }}>
+                                        ✅ Update ready to install.
+                                    </div>
+                                    <button
+                                        onClick={onInstallUpdate}
+                                        style={{ padding: '10px 20px', borderRadius: 6, background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                                    >
+                                        Restart & Install
+                                    </button>
+                                </>
+                            )}
+
+                            {currentUpdateStatus?.status === 'error' && (
+                                <div style={{ padding: '15px 20px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', color: '#991b1b', fontSize: 14 }}>
+                                    ❌ Error: {currentUpdateStatus.message}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

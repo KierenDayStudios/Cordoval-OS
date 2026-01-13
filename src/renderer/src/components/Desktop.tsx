@@ -50,13 +50,13 @@ const loadSettings = (userId: string) => {
     try {
         const saved = localStorage.getItem(getStorageKey(userId, 'cordoval-settings'));
         return saved ? JSON.parse(saved) : {
-            wallpaper: "https://storage.cloud.google.com/randingstorage/blue-abstract-5120x5120-25023.jpg",
+            wallpaper: "wallpapers/serene_morning.png",
             accentColor: "#d946ef",
             zoom: 1.0
         };
     } catch {
         return {
-            wallpaper: "https://storage.cloud.google.com/randingstorage/blue-abstract-5120x5120-25023.jpg",
+            wallpaper: "wallpapers/serene_morning.png",
             accentColor: "#d946ef",
             zoom: 1.0
         };
@@ -93,6 +93,10 @@ export const Desktop = () => {
     const [zoom, setZoom] = useState(userSettings.zoom || 1.0);
     const [iconPositions, setIconPositions] = useState<Record<string, { x: number, y: number }>>(() => loadIconPositions(userId));
 
+    // --- Update Manager State ---
+    const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
+    const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+
     // --- Effects for Persistence ---
     useEffect(() => {
         document.documentElement.style.setProperty('--accent-color', accentColor);
@@ -118,6 +122,41 @@ export const Desktop = () => {
     useEffect(() => {
         localStorage.setItem(getStorageKey(userId, 'cordoval-installed-apps'), JSON.stringify(installedApps));
     }, [installedApps, userId]);
+
+    // --- Update Listener ---
+    useEffect(() => {
+        try {
+            const { ipcRenderer } = window.require('electron');
+            if (!ipcRenderer) return;
+
+            const handleUpdate = (_event: any, info: any) => {
+                console.log('Update Status Received:', info);
+                setUpdateInfo(info);
+                if (info.status === 'available' || info.status === 'downloaded') {
+                    setShowUpdatePrompt(true);
+                }
+            };
+
+            ipcRenderer.on('update-status', handleUpdate);
+            return () => {
+                ipcRenderer.removeListener('update-status', handleUpdate);
+            };
+        } catch (e) {
+            console.warn("Update listener failed: not in electron environment.");
+            return;
+        }
+    }, []);
+
+    const handleUpdateAction = async (action: 'download' | 'install' | 'check') => {
+        const { ipcRenderer } = window.require('electron');
+        if (action === 'download') {
+            await ipcRenderer.invoke('download-update');
+        } else if (action === 'install') {
+            await ipcRenderer.invoke('install-update');
+        } else if (action === 'check') {
+            await ipcRenderer.invoke('check-for-updates');
+        }
+    };
 
 
     // Get installed store apps for display
@@ -182,13 +221,17 @@ export const Desktop = () => {
                             setAccentColor={setAccentColor}
                             currentZoom={zoom}
                             setZoom={setZoom}
+                            currentUpdateStatus={updateInfo}
+                            onCheckUpdate={() => handleUpdateAction('check')}
+                            onDownloadUpdate={() => handleUpdateAction('download')}
+                            onInstallUpdate={() => handleUpdateAction('install')}
                         />
                     )
                 }
             }
             return w;
         }));
-    }, [installedApps, wallpaper, accentColor]);
+    }, [installedApps, wallpaper, accentColor, updateInfo]);
 
     // --- Window Actions ---
     const openApp = (appId: string, title: string, icon: string, component: React.ReactNode) => {
@@ -292,6 +335,10 @@ export const Desktop = () => {
                 setAccentColor={setAccentColor}
                 currentZoom={zoom}
                 setZoom={setZoom}
+                currentUpdateStatus={updateInfo}
+                onCheckUpdate={() => handleUpdateAction('check')}
+                onDownloadUpdate={() => handleUpdateAction('download')}
+                onInstallUpdate={() => handleUpdateAction('install')}
             />
         );
     };
@@ -388,8 +435,55 @@ export const Desktop = () => {
 
     return (
         <div className="desktop" style={{ backgroundImage: `url(${wallpaper})` }} onClick={() => setShowStartMenu(false)}>
-            {/* Removed DraggableWidget per user request */}
+            {/* Update Manager Prompt */}
+            {showUpdatePrompt && updateInfo && (
+                <div style={{
+                    position: 'fixed', bottom: 80, right: 30, width: 320, zIndex: 10000,
+                    background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
+                    padding: 20, borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.2)', color: '#333',
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>🚀 System Update</span>
+                        <button onClick={() => setShowUpdatePrompt(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', opacity: 0.5 }}>✕</button>
+                    </div>
 
+                    {updateInfo.status === 'available' && (
+                        <>
+                            <p style={{ fontSize: 13, marginBottom: 15 }}>A new version (v{updateInfo.version}) is available. Would you like to download it?</p>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleUpdateAction('download'); }}
+                                style={{ width: '100%', padding: '8px', borderRadius: 6, background: accentColor, color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                                Download Update
+                            </button>
+                        </>
+                    )}
+
+                    {updateInfo.status === 'downloading' && (
+                        <>
+                            <p style={{ fontSize: 12, marginBottom: 10 }}>Downloading update... {Math.round(updateInfo.percent || 0)}%</p>
+                            <div style={{ width: '100%', height: 6, background: '#eee', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${updateInfo.percent}%`, height: '100%', background: accentColor, transition: '0.3s' }} />
+                            </div>
+                        </>
+                    )}
+
+                    {updateInfo.status === 'downloaded' && (
+                        <>
+                            <p style={{ fontSize: 13, marginBottom: 15 }}>Update v{updateInfo.version} is ready to install. The system will restart.</p>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleUpdateAction('install'); }}
+                                style={{ width: '100%', padding: '8px', borderRadius: 6, background: accentColor, color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                                Restart & Update
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Desktop Content Area */}
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 50px)', overflow: 'hidden' }}>
                 {getDesktopItems().map((item, index) => (
                     <DraggableDesktopIcon
@@ -400,6 +494,10 @@ export const Desktop = () => {
                         onUpdatePosition={updateIconPosition}
                     />
                 ))}
+
+                {/* Aesthetic Desktop Widgets Inspired by Image */}
+                <CalendarWidget />
+                <MusicWidget />
             </div>
 
             {windows.map(win => (
@@ -417,12 +515,12 @@ export const Desktop = () => {
                             <input
                                 type="text"
                                 className="start-search-input"
-                                placeholder="Type to search..."
+                                placeholder="Search apps, settings, or files..."
                                 autoFocus
                             />
                         </div>
 
-                        <div style={{ flex: 1, overflowY: 'auto', paddingRight: 5, paddingBottom: 20 }}>
+                        <div className="start-menu-scroll">
                             <div className="start-apps-grid-title">Standard Tools</div>
                             <div className="start-apps-grid">
                                 <StartAppItem name="App Store" icon="🏪" onClick={openAppStore} />
@@ -440,7 +538,7 @@ export const Desktop = () => {
 
                             {getInstalledStoreApps().length > 0 && (
                                 <>
-                                    <div className="start-apps-grid-title" style={{ marginTop: 25 }}>Installed</div>
+                                    <div className="start-apps-grid-title" style={{ marginTop: 25 }}>Recently Installed</div>
                                     <div className="start-apps-grid">
                                         {getInstalledStoreApps().map(app => (
                                             <StartAppItem key={app.id} name={app.name} icon={app.icon} onClick={() => handleOpenStoreApp(app)} />
@@ -451,7 +549,7 @@ export const Desktop = () => {
 
                             {hostApps.length > 0 && (
                                 <>
-                                    <div className="start-apps-grid-title" style={{ marginTop: 25 }}>Host Windows Apps (Beta)</div>
+                                    <div className="start-apps-grid-title" style={{ marginTop: 25 }}>Host Windows Apps</div>
                                     <div className="start-apps-grid">
                                         {hostApps.map(app => (
                                             <StartAppItem key={app.path} name={app.name} icon="🪟" onClick={() => launchHostApp(app.path)} />
@@ -460,7 +558,7 @@ export const Desktop = () => {
                                 </>
                             )}
 
-                            <div className="start-apps-grid-title" style={{ marginTop: 25 }}>System</div>
+                            <div className="start-apps-grid-title" style={{ marginTop: 25 }}>System Utilities</div>
                             <div className="start-apps-grid">
                                 <StartAppItem name="Calculator" icon="🧮" onClick={() => launchExe('calc.exe')} />
                                 <StartAppItem name="CMD" icon="💻" onClick={() => launchExe('start cmd.exe')} />
@@ -469,42 +567,44 @@ export const Desktop = () => {
 
                         <div className="start-footer">
                             <div className="user-profile">
-                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(to right, #d946ef, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{currentUser?.avatar}</div>
+                                <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-color), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{currentUser?.avatar}</div>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: 15, fontWeight: 600 }}>{currentUser?.name}</span>
-                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Cordoval OS</span>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name}</span>
+                                    <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }}>Business Professional</span>
                                 </div>
                             </div>
-                            <button className="logout-btn" onClick={logout} style={{ background: 'transparent', border: 'none', color: '#ff4757', padding: '12px', cursor: 'pointer', fontSize: 24, transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'} title="Log Out">⏻</button>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button className="logout-btn" onClick={logout} style={{ background: 'transparent', border: 'none', color: '#ff4757', padding: '8px', cursor: 'pointer', fontSize: 20, transition: 'transform 0.2s' }} title="Log Out">⏻</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
 
             <div className="taskbar" onClick={(e) => e.stopPropagation()}>
-                <div className={`taskbar-icon ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)} style={{ fontSize: 26 }}>💠</div>
+                <div className={`taskbar-icon ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)} style={{ fontSize: 26, color: '#444' }}>💠</div>
                 {windows.map(win => (
                     <div key={win.id} className={`taskbar-icon ${activeWindowId === win.id && !win.isMinimized ? 'active' : ''}`}
                         onClick={() => win.isMinimized ? focusWindow(win.id) : toggleMinimize(win.id)}>
-                        {win.icon}
+                        <span style={{ fontSize: 22 }}>{win.icon}</span>
                     </div>
                 ))}
 
                 <div className="system-tray">
                     <span
                         title={isOnline ? "Online" : "Offline"}
-                        style={{ cursor: 'help', opacity: isOnline ? 1 : 0.5 }}
+                        style={{ cursor: 'help', opacity: 0.8, fontSize: 16 }}
                     >
                         {isOnline ? '📶' : '⚠️'}
                     </span>
                     <span
                         onClick={() => setIsMuted(!isMuted)}
-                        style={{ cursor: 'pointer', minWidth: 20, textAlign: 'center' }}
+                        style={{ cursor: 'pointer', minWidth: 20, textAlign: 'center', opacity: 0.8, fontSize: 16 }}
                         title={isMuted ? "Unmute" : "Mute"}
                     >
                         {isMuted ? '🔇' : '🔊'}
                     </span>
-                    <span style={{ color: 'white', fontWeight: 600, fontSize: '14px', letterSpacing: '0.5px' }}>
+                    <span style={{ color: '#333', fontWeight: 600, fontSize: '13px', marginLeft: 5 }}>
                         {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                 </div>
@@ -811,6 +911,78 @@ const DraggableWindow = ({ windowState, isActive, onFocus, onClose, onMinimize, 
                 </div>
             </div>
             <div className="window-content">{windowState.component}</div>
+        </div>
+    );
+};
+const CalendarWidget = () => {
+    const now = new Date();
+    const dayNumeric = now.getDate();
+    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    return (
+        <div style={{
+            position: 'absolute', bottom: 100, right: 30, width: 260,
+            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)',
+            borderRadius: 24, padding: 20, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.1)'
+        }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{now.toLocaleDateString('en-US', { weekday: 'long' })},</h2>
+            <h2 style={{ margin: '0 0 15px 0', fontSize: 18, fontWeight: 800 }}>{dayNumeric} {now.toLocaleDateString('en-US', { month: 'long' })} {now.getFullYear()}</h2>
+
+            <div style={{ opacity: 0.6, fontSize: 12, fontWeight: 700, marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
+                <span>{monthYear}</span>
+                <span>▲ ▼</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, textAlign: 'center', fontSize: 10, fontWeight: 700 }}>
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <div key={d} style={{ color: 'rgba(0,0,0,0.3)' }}>{d}</div>)}
+                {Array.from({ length: 31 }, (_, i) => (
+                    <div key={i} style={{
+                        padding: '4px 0', borderRadius: 8,
+                        background: (i + 1) === dayNumeric ? 'var(--accent-color)' : 'transparent',
+                        color: (i + 1) === dayNumeric ? 'white' : 'inherit'
+                    }}>
+                        {i + 1}
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.4)', marginBottom: 8 }}>TODAY</div>
+                <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.03)', borderRadius: 10, fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 4, height: 14, background: 'var(--accent-color)', borderRadius: 2 }} />
+                    No events scheduled
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MusicWidget = () => {
+    return (
+        <div style={{
+            position: 'absolute', top: 30, left: 30, width: 280,
+            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)',
+            borderRadius: 20, padding: 15, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: 12
+        }}>
+            <div style={{ height: 4, background: 'rgba(0,0,0,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: '45%', height: '100%', background: '#444' }} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎵</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lose Yourself to Dance (feat. Pharrell Williams)</div>
+                    <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', fontWeight: 500 }}>Daft Punk • Random Access Memories</div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 18, opacity: 0.8 }}>
+                <span>⏪</span>
+                <span>⏸️</span>
+                <span>⏩</span>
+            </div>
         </div>
     );
 };

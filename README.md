@@ -52,6 +52,7 @@ npm run build:win
 ## 📦 Distribution
 
 See detailed guides:
+- **[CORDOVAL_OS_OVERVIEW.md](CORDOVAL_OS_OVERVIEW.md)** - Full feature list, target audience, and platform info
 - **[BUILD-GUIDE.md](BUILD-GUIDE.md)** - Complete build and distribution documentation
 - **[RELEASE.md](RELEASE.md)** - Quick release checklist
 

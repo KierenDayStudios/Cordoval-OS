@@ -1,41 +1,37 @@
-# 🌐 Website Release Guide - Cordoval OS
+# 🌐 Website Release & Update Guide - Cordoval OS
 
-You have configured Cordoval OS to receive updates from your website:  
+Cordoval OS is configured to receive updates directly from your website:
 **`https://kierendaystudios.co.uk/downloads/cordoval-os/`**
 
 ## 1. Build the Release
-Run the following command to build the Windows installer and update files:
+Run the following command to generate the installer and update manifest:
 
 ```bash
 npm run build:win
 ```
 
 ## 2. Locate Artifacts
-After the build completes, look in the `release/{version}` folder (e.g., `release/1.0.0/`).
-You will see several files, but you need these two:
+After the build, check the `release/${version}` folder. You need these files:
 
-1.  **`CordovalOS Setup 1.0.0.exe`** (The installer)
-2.  **`latest.yml`** (The update manifest)
+1.  **`Cordoval OS Setup X.X.X.exe`**: The main installer.
+2.  **`latest.yml`**: The critical update manifest file.
 
-*(Note: `CordovalOS Setup 1.0.0.exe.blockmap` is also useful for differential updates but not strictly required if you just want it to work)*
+## 3. Upload to Your Server
+Upload **both files** to your hosting at the path:
+`/downloads/cordoval-os/`
 
-## 3. Upload to Your Website
-Upload **both files** to the exact URL path you configured.
+| File | URL Location |
+| --- | --- |
+| `Cordoval OS Setup X.X.X.exe` | `https://kierendaystudios.co.uk/downloads/cordoval-os/Cordoval OS Setup X.X.X.exe` |
+| `latest.yml` | `https://kierendaystudios.co.uk/downloads/cordoval-os/latest.yml` |
 
-Local File | URL on Server (Example)
---- | ---
-`CordovalOS Setup 1.0.0.exe` | `https://kierendaystudios.co.uk/downloads/cordoval-os/CordovalOS%20Setup%201.0.0.exe`
-`latest.yml` | `https://kierendaystudios.co.uk/downloads/cordoval-os/latest.yml`
+## 4. How the Update Works
+1.  **Check**: Every time a user opens Cordoval OS, it checks `latest.yml` on your server.
+2.  **Download**: If the version in `latest.yml` is higher than the installed version, it downloads the new `.exe` in the background.
+3.  **UI Notification**: A "🚀 System Update" notification appears on the Cordoval Desktop.
+4.  **Install**: When the user clicks "Restart & Update", the system installs the new version, keeping all user files intact.
 
-## 4. Test It
-1.  Install the app using the new `Setup.exe`.
-2.  Increment version in `package.json` (e.g., `1.0.1`).
-3.  Run `npm run build:win` again.
-4.  Upload the new artifacts (`Setup 1.0.1.exe` and updated `latest.yml`).
-5.  Open the installed app (v1.0.0). It should detect the update and download it.
-
-## Troubleshooting
--   **App not updating?**
-    -   Verify you can download `latest.yml` by visiting the URL in your browser.
-    -   Check the app logs (Ctrl+Shift+I -> Console) for "update-not-available" or error messages.
-    -   Ensure `latest.yml` contains the correct filename for the new `.exe`.
+## 5. Testing
+1. Install an older version.
+2. Upload a newer version + `latest.yml` to your site.
+3. Open the old version; it should notify you of the update within seconds.

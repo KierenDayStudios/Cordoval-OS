@@ -86,6 +86,42 @@ const DEFAULT_FOLDERS: VirtualFile[] = [
     },
 ];
 
+const DEFAULT_FILES: VirtualFile[] = [
+    {
+        id: 'wall-1',
+        name: 'abstract_blue_wave.png',
+        type: 'file',
+        parentId: 'wallpapers',
+        content: './wallpapers/abstract_blue_wave.png',
+        mimeType: 'image/png',
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+        icon: '🖼️'
+    },
+    {
+        id: 'wall-2',
+        name: 'dark_mountain.png',
+        type: 'file',
+        parentId: 'wallpapers',
+        content: './wallpapers/dark_mountain.png',
+        mimeType: 'image/png',
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+        icon: '🖼️'
+    },
+    {
+        id: 'wall-3',
+        name: 'neon_city.png',
+        type: 'file',
+        parentId: 'wallpapers',
+        content: './wallpapers/neon_city.png',
+        mimeType: 'image/png',
+        createdAt: new Date(),
+        modifiedAt: new Date(),
+        icon: '🖼️'
+    },
+];
+
 // --- File System Context ---
 interface FileSystemContextType {
     files: VirtualFile[];
@@ -139,10 +175,10 @@ export const FileSystemProvider: React.FC<{ children: ReactNode; userId?: string
                     modifiedAt: new Date(f.modifiedAt)
                 }));
             } catch {
-                return DEFAULT_FOLDERS;
+                return [...DEFAULT_FOLDERS, ...DEFAULT_FILES];
             }
         }
-        return DEFAULT_FOLDERS;
+        return [...DEFAULT_FOLDERS, ...DEFAULT_FILES];
     });
 
     const [currentFolderId, setCurrentFolderId] = useState<string>('root');
@@ -160,10 +196,10 @@ export const FileSystemProvider: React.FC<{ children: ReactNode; userId?: string
                     modifiedAt: new Date(f.modifiedAt)
                 })));
             } catch {
-                setFiles(DEFAULT_FOLDERS);
+                setFiles([...DEFAULT_FOLDERS, ...DEFAULT_FILES]);
             }
         } else {
-            setFiles(DEFAULT_FOLDERS);
+            setFiles([...DEFAULT_FOLDERS, ...DEFAULT_FILES]);
         }
         setCurrentFolderId('root');
     }, [userId]);

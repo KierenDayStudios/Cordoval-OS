@@ -16,7 +16,7 @@ asarUnpack:
 
 # Windows Configuration
 win:
-  icon: build/icon.png
+  icon: build/icon.ico
   executableName: CordovalOS
   verifyUpdateCodeSignature: false
   target:
@@ -37,8 +37,8 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   perMachine: false
-  installerIcon: build/icon.png
-  uninstallerIcon: build/icon.png
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
   license: LICENSE
   warningsAsErrors: false
 
@@ -72,16 +72,11 @@ appImage:
 npmRebuild: false
 
 # Auto-Update Configuration
-# For GitHub Releases (recommended for free hosting)
-# Auto-Update Configuration removed per user request
-# publish: null
-
-# backup github config (disabled)
-# publish:
-#   provider: github
-#   owner: KierenDayStudios
-#   repo: Cordoval-OS
-#   releaseType: release
+# Configure for GitHub hosting
+publish:
+  provider: github
+  owner: KierenDayStudios
+  repo: Cordoval-OS
 
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
