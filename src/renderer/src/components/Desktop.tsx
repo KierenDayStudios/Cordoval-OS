@@ -94,7 +94,7 @@ export const Desktop = () => {
     const userSettings = loadSettings(userId);
     const [wallpaper, setWallpaper] = useState(userSettings.wallpaper);
     const [accentColor, setAccentColor] = useState(userSettings.accentColor);
-    const [zoom, setZoom] = useState(userSettings.zoom || 1.0);
+    const [zoom, setZoom] = useState(userSettings.zoom || 0.85);
     const [iconPositions, setIconPositions] = useState<Record<string, { x: number, y: number }>>(() => loadIconPositions(userId));
     const [hiddenApps, setHiddenApps] = useState<string[]>(() => loadHiddenApps(userId));
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, itemId: string } | null>(null);
