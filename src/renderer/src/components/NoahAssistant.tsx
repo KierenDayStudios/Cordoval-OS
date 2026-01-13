@@ -139,7 +139,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
         }
 
         // Handle App Generation
-        const appGenMatch = response.match(/\[COMMAND:GENERATE_APP:(.+?):([\s\S]+?)\]/)
+        const appGenMatch = response.match(/\[NOAH_APP_START:(.+?)\]([\s\S]+?)\[NOAH_APP_END\]/)
         if (appGenMatch && onGenerateApp) {
           onGenerateApp(appGenMatch[1].trim(), appGenMatch[2].trim())
         }
@@ -147,7 +147,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
         const cleanResponse = response
           .replace(/\[COMMAND:OPEN_APP:.+?\]/g, '')
           .replace(/\[COMMAND:SAVE_MEMORY:.+?\]/g, '')
-          .replace(/\[COMMAND:GENERATE_APP:.+?:[\s\S]+?\]/g, '')
+          .replace(/\[NOAH_APP_START:.+?\][\s\S]+?\[NOAH_APP_END\]/g, '')
           .trim()
         setMessages((prev) => [...prev, { role: 'assistant', content: cleanResponse }])
         speak(cleanResponse)
