@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { release } from 'node:os'
 import { join } from 'node:path'
+import { exec } from 'node:child_process'
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) app.disableHardwareAcceleration()
@@ -131,13 +132,10 @@ const createWindow = (): void => {
   })
 
   win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
-    console.log(`[Electron] Permission requested: ${permission}`)
-    const allowedPermissions = ['media', 'audioCapture', 'speechRecognition']
+    const allowedPermissions = ['media', 'audioCapture', 'speechRecognition', 'notifications']
     if (allowedPermissions.includes(permission)) {
-      console.log(`[Electron] Permission granted: ${permission}`)
       callback(true)
     } else {
-      console.log(`[Electron] Permission denied: ${permission}`)
       callback(false)
     }
   })
@@ -204,7 +202,6 @@ app.on('activate', () => {
 
 ipcMain.handle('open-win-app', (_, command) => {
   try {
-    const { exec } = require('child_process')
     exec(command)
   } catch (e) {
     console.error(e)

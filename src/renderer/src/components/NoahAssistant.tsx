@@ -57,20 +57,8 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
 
     // Initialize Speech Recognition
     useEffect(() => {
-        const primeMic = async (): Promise<void> => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                console.log('Noah: Microphone primed successfully.');
-                stream.getTracks().forEach(track => track.stop());
-            } catch (err) {
-                console.error('Noah: Failed to prime microphone:', err);
-            }
-        };
-
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) return;
-
-        primeMic();
 
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
@@ -108,10 +96,9 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             console.error('Noah Speech Recognition Error:', event.error);
-            if (event.error === 'not-allowed') {
-                console.warn('Microphone access denied.');
-            } else if (event.error === 'network') {
-                console.error('Noah Speech Recognition network error. This often means Google Speech API is blocked or unavailable in this environment.');
+            if (event.error === 'network') {
+                console.warn('Noah: Network error detected. Voice recognition may be limited.');
+                consecutiveErrors = 5; // Trigger fallback immediately on network failure
             }
         };
 
@@ -119,13 +106,13 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
         let consecutiveErrors = 0;
 
         recognition.onstart = () => {
-            console.log('Noah Speech Recognition: Engine Started Successfully');
             consecutiveErrors = 0;
         };
 
         recognition.onend = () => {
-            console.log('Noah Speech Recognition: Engine Stopped');
-            // Longer backoff to prevent spam if network is failing
+            // If we have persistent errors, don't restart too fast
+            const backoff = consecutiveErrors >= 5 ? 30000 : 3000;
+
             if (restartTimeout) clearTimeout(restartTimeout);
             restartTimeout = setTimeout(() => {
                 if (!isSpeakingRef.current) {
@@ -135,7 +122,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
                         consecutiveErrors++;
                     }
                 }
-            }, 3000);
+            }, backoff);
         };
 
         recognitionRef.current = recognition;
