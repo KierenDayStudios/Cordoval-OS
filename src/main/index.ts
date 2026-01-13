@@ -128,11 +128,18 @@ const createWindow = (): void => {
 
   // Handle persistent permission checks
   win.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
-    return ['media', 'audioCapture', 'speechRecognition'].includes(permission)
+    const allowed = ['media', 'audioCapture', 'speechRecognition', 'notifications', 'microphone']
+    return allowed.includes(permission)
   })
 
   win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
-    const allowedPermissions = ['media', 'audioCapture', 'speechRecognition', 'notifications']
+    const allowedPermissions = [
+      'media',
+      'audioCapture',
+      'speechRecognition',
+      'notifications',
+      'microphone'
+    ]
     if (allowedPermissions.includes(permission)) {
       callback(true)
     } else {
