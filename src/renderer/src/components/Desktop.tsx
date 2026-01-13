@@ -9,6 +9,7 @@ import { Calculator } from './Calculator'
 import { CalendarApp } from './Calendar'
 import { ModernIcon } from './ModernIcon'
 import { NoahAssistant } from './NoahAssistant'
+import { useFileSystem } from './FileSystem'
 
 // --- TypeScript Definitions ---
 declare global {
@@ -130,16 +131,32 @@ const loadHiddenApps = (userId: string): string[] => {
   }
 }
 
+export interface GeneratedAppData {
+  id: string
+  name: string
+  code: string
+  createdAt: number
+}
+
+const loadGeneratedApps = (userId: string): GeneratedAppData[] => {
+  try {
+    const saved = localStorage.getItem(getStorageKey(userId, 'cordoval-generated-apps'))
+    return saved ? JSON.parse(saved) : []
+  } catch {
+    return []
+  }
+}
+
 const loadSettings = (userId: string) => {
   try {
     const saved = localStorage.getItem(getStorageKey(userId, 'cordoval-settings'))
     return saved
       ? JSON.parse(saved)
       : {
-          wallpaper: 'wallpapers/serene_morning.png',
-          accentColor: '#d946ef',
-          zoom: 1.0
-        }
+        wallpaper: 'wallpapers/serene_morning.png',
+        accentColor: '#d946ef',
+        zoom: 1.0
+      }
   } catch {
     return {
       wallpaper: 'wallpapers/serene_morning.png',
@@ -174,6 +191,7 @@ interface DesktopItem {
 export const Desktop = () => {
   const { currentUser, logout } = useUser()
   const userId = currentUser!.id
+  const { createFile, files, updateFileContent } = useFileSystem()
 
   const [windows, setWindows] = useState<WindowState[]>([])
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null)
@@ -193,7 +211,7 @@ export const Desktop = () => {
     null
   )
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
-
+  const [generatedApps, setGeneratedApps] = useState<GeneratedAppData[]>(() => loadGeneratedApps(userId))
   const [updateInfo, setUpdateInfo] = useState<{
     status: string
     version?: string
@@ -235,6 +253,10 @@ export const Desktop = () => {
   useEffect(() => {
     localStorage.setItem(getStorageKey(userId, 'cordoval-hidden-apps'), JSON.stringify(hiddenApps))
   }, [hiddenApps, userId])
+
+  useEffect(() => {
+    localStorage.setItem(getStorageKey(userId, 'cordoval-generated-apps'), JSON.stringify(generatedApps))
+  }, [generatedApps, userId])
 
   useEffect(() => {
     try {
@@ -530,6 +552,14 @@ export const Desktop = () => {
         action: () => handleOpenStoreApp(app)
       })
     })
+    generatedApps.forEach((app) => {
+      allItems.push({
+        id: app.id,
+        title: app.name,
+        icon: '🛠️',
+        action: () => openApp(app.id, app.name, '🛠️', <GeneratedApp code={app.code} />)
+      })
+    })
     allItems.push({ id: 'settings', title: 'Settings', icon: 'settings', action: openSettings })
 
     return allItems.filter((item) => !hiddenApps.includes(item.id))
@@ -790,12 +820,34 @@ export const Desktop = () => {
             }
           }}
           onGenerateApp={(appName, code) => {
-            openApp(
-              `gen-${appName.toLowerCase().replace(/\s+/g, '-')}`,
-              appName,
-              '🛠️',
-              <GeneratedApp code={code} />
-            )
+            const appId = `gen-${appName.toLowerCase().replace(/\s+/g, '-')}`
+            const newApp: GeneratedAppData = {
+              id: appId,
+              name: appName,
+              code: code,
+              createdAt: Date.now()
+            }
+
+            // Update state to persist and show on desktop
+            setGeneratedApps(prev => {
+              const exists = prev.find(a => a.id === appId)
+              if (exists) {
+                return prev.map(a => a.id === appId ? newApp : a)
+              }
+              return [...prev, newApp]
+            })
+
+            // Save/Update in Virtual File System
+            const fileName = `${appName}.html`
+            const existingFile = files.find(f => f.name === fileName && f.parentId === 'documents')
+            if (existingFile) {
+              updateFileContent(existingFile.id, code)
+            } else {
+              createFile(fileName, code, 'text/html', 'documents')
+            }
+
+            // Open the app window immediately
+            openApp(appId, appName, '🛠️', <GeneratedApp code={code} />)
           }}
         />
 
