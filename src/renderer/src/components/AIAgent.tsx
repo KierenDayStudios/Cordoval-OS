@@ -129,6 +129,7 @@ Output ONE command from:
 
 If you need to think, output a thought using normal text, then the command.
 `;
+                if (!aiService.current) throw new Error('AI Service not ready');
                 const response = await aiService.current.sendMessage([
                     { role: 'system', content: statePrompt }
                 ]);
@@ -187,6 +188,10 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
 `;
 
         try {
+            if (!aiService.current) {
+                log('AI Service not initialized');
+                return;
+            }
             const response = await aiService.current.sendMessage([
                 { role: 'system', content: contextMsg },
                 ...messages,
