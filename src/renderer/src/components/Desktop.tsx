@@ -7,6 +7,8 @@ import { Settings } from './Settings';
 import { useUser } from '../context/UserContext';
 import { Calculator } from './Calculator';
 import { CalendarApp } from './Calendar';
+import { ModernIcon } from './ModernIcon';
+
 
 // --- TypeScript Definitions ---
 declare global {
@@ -17,14 +19,14 @@ declare global {
 
 // --- CONFIGURATION: KDS ECOSYSTEM ---
 const KDS_APPS = [
-    { id: 'workspace', name: 'KDS Workspace', url: 'https://workspace.kierendaystudios.co.uk/', icon: '💼', category: 'Productivity', description: 'Docs, slides, spreadsheets, notes and project management.', color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
-    { id: 'retbuild', name: 'Retbuild', url: 'https://retbuild.co.uk/', icon: '🛠️', category: 'Productivity', description: 'Build micro apps, software prototypes and ai agents with Google\'s Gemini.', color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
-    { id: 'founders', name: 'KDS Founders OS', url: 'https://founders.kierendaystudios.co.uk/', icon: '🚀', category: 'Productivity', description: 'Manage business projects, ideas, links, tasks, roadmaps and more.', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
-    { id: 'code', name: 'KDS Code', url: 'https://codestudio.kierendaystudios.co.uk/', icon: '💻', category: 'Development', description: 'Modern sleek IDE for creating web based applications and platforms.', color: '#0ea5e9', gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)' },
-    { id: 'academy', name: 'KDS Web Academy', url: 'https://academy.kierendaystudios.co.uk/', icon: '🎓', category: 'Development', description: 'Learn how to build websites in HTML, CSS, and JS with a built-in IDE.', color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
-    { id: 'gamedev', name: 'Game Dev Center', url: 'https://gamedev.kierendaystudios.co.uk/#/dashboard', icon: '🕹️', category: 'Development', description: 'Indie gaming platform by KDS.', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' },
-    { id: 'stock', name: 'KDS Stock Images', url: 'https://stock.kierendaystudios.co.uk/', icon: '📸', category: 'Resources', description: 'Commercially free to use stock images.', color: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280, #4b5563)' },
-    { id: 'gaming', name: 'KDS Gaming', url: 'https://gaming.kierendaystudios.co.uk/#/dashboard', icon: '🎮', category: 'Resources', description: 'Indie gaming platform by KDS.', color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899, #db2777)' },
+    { id: 'workspace', name: 'KDS Workspace', url: 'https://workspace.kierendaystudios.co.uk/', icon: 'workspace', category: 'Productivity', description: 'Docs, slides, spreadsheets, notes and project management.', color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+    { id: 'retbuild', name: 'Retbuild', url: 'https://retbuild.co.uk/', icon: 'retbuild', category: 'Productivity', description: 'Build micro apps, software prototypes and ai agents with Google\'s Gemini.', color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
+    { id: 'founders', name: 'KDS Founders OS', url: 'https://founders.kierendaystudios.co.uk/', icon: 'founders', category: 'Productivity', description: 'Manage business projects, ideas, links, tasks, roadmaps and more.', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+    { id: 'code', name: 'KDS Code', url: 'https://codestudio.kierendaystudios.co.uk/', icon: 'code', category: 'Development', description: 'Modern sleek IDE for creating web based applications and platforms.', color: '#0ea5e9', gradient: 'linear-gradient(135deg, #0ea5e9, #0284c7)' },
+    { id: 'academy', name: 'KDS Web Academy', url: 'https://academy.kierendaystudios.co.uk/', icon: 'academy', category: 'Development', description: 'Learn how to build websites in HTML, CSS, and JS with a built-in IDE.', color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+    { id: 'gamedev', name: 'Game Dev Center', url: 'https://gamedev.kierendaystudios.co.uk/#/dashboard', icon: 'gamedev', category: 'Development', description: 'Indie gaming platform by KDS.', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' },
+    { id: 'stock', name: 'KDS Stock Images', url: 'https://stock.kierendaystudios.co.uk/', icon: 'stock', category: 'Resources', description: 'Commercially free to use stock images.', color: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280, #4b5563)' },
+    { id: 'gaming', name: 'KDS Gaming', url: 'https://gaming.kierendaystudios.co.uk/#/dashboard', icon: 'gaming', category: 'Resources', description: 'Indie gaming platform by KDS.', color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899, #db2777)' },
 ];
 
 const getStorageKey = (userId: string, key: string) => `${key}-${userId}`;
@@ -269,31 +271,31 @@ export const Desktop = () => {
     const openKDSBrowser = (initialUrl?: string) => {
         const browserId = 'kds-browser';
         if (windows.find(w => w.id === browserId)) { focusWindow(browserId); return; }
-        openApp(browserId, 'KDS Browser', '🌐', <KDSBrowser initialUrl={initialUrl} />);
+        openApp(browserId, 'KDS Browser', 'kds-browser', <KDSBrowser initialUrl={initialUrl} />);
     };
 
     const openFileExplorer = () => {
         const explorerId = 'file-explorer';
         if (windows.find(w => w.id === explorerId)) { focusWindow(explorerId); return; }
-        openApp(explorerId, 'File Explorer', '📁', <FileExplorer />);
+        openApp(explorerId, 'File Explorer', 'file-explorer', <FileExplorer />);
     };
 
     const openCalculator = () => {
         const calcId = 'calculator';
         if (windows.find(w => w.id === calcId)) { focusWindow(calcId); return; }
-        openApp(calcId, 'Calculator', '🧮', <Calculator />);
+        openApp(calcId, 'Calculator', 'calculator', <Calculator />);
     };
 
     const openCalendarApp = () => {
         const calId = 'calendar-app';
         if (windows.find(w => w.id === calId)) { focusWindow(calId); return; }
-        openApp(calId, 'Calendar', '📅', <CalendarApp />);
+        openApp(calId, 'Calendar', 'calendar', <CalendarApp />);
     };
 
     const openSettings = () => {
         const settingsId = 'settings';
         if (windows.find(w => w.id === settingsId)) { focusWindow(settingsId); return; }
-        openApp(settingsId, 'Settings', '⚙️',
+        openApp(settingsId, 'Settings', 'settings',
             <Settings
                 currentWallpaper={wallpaper}
                 setWallpaper={setWallpaper}
@@ -311,9 +313,9 @@ export const Desktop = () => {
 
     const getDesktopItems = (): DesktopItem[] => {
         const items: DesktopItem[] = [
-            { id: 'kds-browser', title: 'KDS Browser', icon: '🌐', action: () => openKDSBrowser() },
-            { id: 'file-explorer', title: 'File Explorer', icon: '📁', action: openFileExplorer },
-            { id: 'app-store', title: 'App Store', icon: '🏪', action: openAppStore },
+            { id: 'kds-browser', title: 'KDS Browser', icon: 'kds-browser', action: () => openKDSBrowser() },
+            { id: 'file-explorer', title: 'File Explorer', icon: 'file-explorer', action: openFileExplorer },
+            { id: 'app-store', title: 'App Store', icon: 'app-store', action: openAppStore },
         ];
         KDS_APPS.forEach(app => { items.push({ id: app.id, title: app.name, icon: app.icon, action: () => openKdsApp(app), gradient: app.gradient } as any); });
         getInstalledStoreApps().forEach(app => { items.push({ id: app.id, title: app.name, icon: app.icon, action: () => handleOpenStoreApp(app) }); });
@@ -415,8 +417,8 @@ export const Desktop = () => {
                 {getDesktopItems().map((item, index) => (
                     <DraggableDesktopIcon key={item.id} item={item} index={index} position={iconPositions[item.id]} onUpdatePosition={updateIconPosition} />
                 ))}
+                <NotesWidget />
                 <CalendarWidget />
-                <MusicWidget />
             </div>
 
             {windows.map(win => (
@@ -436,10 +438,10 @@ export const Desktop = () => {
                         <div className="start-menu-scroll">
                             <div className="start-apps-grid-title">Standard Tools</div>
                             <div className="start-apps-grid">
-                                <StartAppItem name="App Store" icon="🏪" onClick={openAppStore} />
-                                <StartAppItem name="Browser" icon="🌐" onClick={() => openKDSBrowser()} />
-                                <StartAppItem name="Files" icon="📁" onClick={openFileExplorer} />
-                                <StartAppItem name="Settings" icon="⚙️" onClick={openSettings} />
+                                <StartAppItem name="App Store" icon="app-store" onClick={openAppStore} />
+                                <StartAppItem name="Browser" icon="kds-browser" onClick={() => openKDSBrowser()} />
+                                <StartAppItem name="Files" icon="file-explorer" onClick={openFileExplorer} />
+                                <StartAppItem name="Settings" icon="settings" onClick={openSettings} />
                             </div>
                             <div className="start-apps-grid-title" style={{ marginTop: 25 }}>KDS Ecosystem</div>
                             <div className="start-apps-grid">
@@ -491,15 +493,21 @@ export const Desktop = () => {
             )}
 
             <div className="taskbar" onClick={(e) => e.stopPropagation()}>
-                <div className={`taskbar-icon ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)} style={{ fontSize: 26, color: 'white', background: '#000', borderRadius: '50%', width: 42, height: 42 }}>💠</div>
+                <div className={`taskbar-icon start-btn ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)}>
+                    <ModernIcon iconName="LayoutGrid" size={38} gradient="linear-gradient(135deg, #000, #333)" />
+                </div>
                 {windows.map(win => (
                     <div key={win.id} className={`taskbar-icon ${activeWindowId === win.id && !win.isMinimized ? 'active' : ''}`} onClick={() => win.isMinimized ? focusWindow(win.id) : toggleMinimize(win.id)}>
-                        <span style={{ fontSize: 22 }}>{win.icon}</span>
+                        <ModernIcon iconName={win.icon} size={36} />
                     </div>
                 ))}
                 <div className="system-tray">
-                    <span title={isOnline ? "Online" : "Offline"} style={{ cursor: 'help', opacity: 0.8, fontSize: 16 }}>{isOnline ? '📶' : '⚠️'}</span>
-                    <span onClick={() => setIsMuted(!isMuted)} style={{ cursor: 'pointer', minWidth: 20, textAlign: 'center', opacity: 0.8, fontSize: 16 }} title={isMuted ? "Unmute" : "Mute"}>{isMuted ? '🔇' : '🔊'}</span>
+                    <span title={isOnline ? "Online" : "Offline"} style={{ cursor: 'help', opacity: 0.8, display: 'flex', alignItems: 'center' }}>
+                        <ModernIcon iconName={isOnline ? "Wifi" : "WifiOff"} size={22} gradient="transparent" />
+                    </span>
+                    <span onClick={() => setIsMuted(!isMuted)} style={{ cursor: 'pointer', opacity: 0.8, display: 'flex', alignItems: 'center' }} title={isMuted ? "Unmute" : "Mute"}>
+                        <ModernIcon iconName={isMuted ? "VolumeX" : "Volume2"} size={22} gradient="transparent" />
+                    </span>
                     <span style={{ color: '#333', fontWeight: 600, fontSize: '13px', marginLeft: 5 }}>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             </div>
@@ -516,14 +524,7 @@ const WebFrame = ({ url }: { url: string }) => (
 );
 
 const AppIcon = ({ icon, gradient, size = 48, className }: { icon: string, gradient?: string, size?: number, className?: string }) => (
-    <div className={className} style={{
-        width: size, height: size, borderRadius: Math.floor(size * 0.28), background: gradient || 'rgba(255,255,255,0.05)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.floor(size * 0.5),
-        boxShadow: gradient ? '0 4px 15px rgba(0,0,0,0.3)' : 'none', border: '1px solid rgba(255,255,255,0.1)',
-        flexShrink: 0, transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
-    }}>
-        <span style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>{icon}</span>
-    </div>
+    <ModernIcon iconName={icon} size={size} gradient={gradient} className={className} />
 );
 
 function StartAppItem({ name, icon, onClick, gradient }: { name: string, icon: string, onClick: () => void, gradient?: string }) {
@@ -665,18 +666,37 @@ const CalendarWidget = () => {
     );
 };
 
-const MusicWidget = () => {
+const NotesWidget = () => {
+    const [notes, setNotes] = useState(() => localStorage.getItem('kds-notes') || '');
+
+    const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setNotes(val);
+        localStorage.setItem('kds-notes', val);
+    };
+
     return (
-        <div style={{ position: 'absolute', top: 30, left: 30, width: 280, background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)', borderRadius: 20, padding: 15, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)', boxShadow: '0 15px 45px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ height: 4, background: 'rgba(0,0,0,0.05)', borderRadius: 2, overflow: 'hidden' }}><div style={{ width: '45%', height: '100%', background: '#444' }} /></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎵</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lose Yourself to Dance (feat. Pharrell Williams)</div>
-                    <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', fontWeight: 500 }}>Daft Punk • Random Access Memories</div>
-                </div>
+        <div style={{
+            position: 'absolute', bottom: 420, right: 30, width: 260, height: 220,
+            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)',
+            borderRadius: 24, padding: 20, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: 10
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>📝</span>
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.5, opacity: 0.6 }}>QUICK NOTES</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 18, opacity: 0.8 }}><span>⏪</span><span>⏸️</span><span>⏩</span></div>
+            <textarea
+                value={notes}
+                onChange={handleNotesChange}
+                placeholder="Type your notes here..."
+                style={{
+                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                    fontSize: 12, fontWeight: 500, color: '#333', resize: 'none',
+                    fontFamily: 'inherit', lineHeight: 1.5
+                }}
+            />
         </div>
     );
 };
+

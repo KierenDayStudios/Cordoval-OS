@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './AppStore.css';
+import { ModernIcon } from './ModernIcon';
+
 
 // --- App Store App Data ---
 export interface StoreApp {
@@ -302,12 +304,11 @@ export const AppStore: React.FC<AppStoreProps> = ({ installedApps, onInstallApp,
                                 ← Back to Apps
                             </button>
                             <div className="detail-header">
-                                <div
-                                    className="detail-icon"
-                                    style={{ background: selectedApp.gradient || CATEGORY_META[selectedApp.category]?.gradient || '#333' }}
-                                >
-                                    {selectedApp.icon}
-                                </div>
+                                <ModernIcon
+                                    iconName={selectedApp.icon}
+                                    size={120}
+                                    gradient={selectedApp.gradient || CATEGORY_META[selectedApp.category]?.gradient}
+                                />
                                 <div className="detail-info">
                                     <h1>{selectedApp.name}</h1>
                                     <div className="detail-category">{selectedApp.category}</div>
@@ -357,13 +358,12 @@ export const AppStore: React.FC<AppStoreProps> = ({ installedApps, onInstallApp,
                                         className={`app-card ${isInstalled(app.id) ? 'installed' : ''}`}
                                         onClick={() => setSelectedApp(app)}
                                     >
-                                        <div
-                                            className="app-card-icon"
-                                            style={{ background: app.gradient || CATEGORY_META[app.category]?.gradient || '#333' }}
-                                        >
-                                            {app.icon}
-                                            {isInstalled(app.id) && <span className="installed-badge">✓</span>}
-                                        </div>
+                                        <ModernIcon
+                                            iconName={app.icon}
+                                            size={80}
+                                            gradient={app.gradient || CATEGORY_META[app.category]?.gradient}
+                                        />
+                                        {isInstalled(app.id) && <span className="installed-badge">✓</span>}
                                         <div className="app-card-info">
                                             <h3>{app.name}</h3>
                                             <p>{app.description.substring(0, 60)}...</p>

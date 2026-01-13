@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import '../App.css'; // Ensure we have access to common styles
 import { useUser } from '../context/UserContext';
 import { useFileSystem } from './FileSystem';
+import { ModernIcon } from './ModernIcon';
+
 
 interface SettingsProps {
     currentWallpaper: string;
@@ -58,23 +60,32 @@ export const Settings: React.FC<SettingsProps> = ({
     return (
         <div style={{ display: 'flex', height: '100%', color: '#333', background: '#f5f5f5' }}>
             {/* Sidebar */}
-            <div style={{ width: 200, background: '#e5e5e5', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{
+                width: 200,
+                background: '#e5e5e5',
+                padding: '20px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 5,
+                overflowY: 'auto',
+                borderRight: '1px solid rgba(0,0,0,0.05)'
+            }}>
                 <div style={{ padding: '10px 15px', fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>Settings</div>
 
                 <SidebarItem
-                    icon="🎨"
+                    icon="Palette"
                     label="Personalization"
                     active={activeTab === 'personalization'}
                     onClick={() => setActiveTab('personalization')}
                 />
                 <SidebarItem
-                    icon="ℹ️"
+                    icon="Info"
                     label="System Info"
                     active={activeTab === 'info'}
                     onClick={() => setActiveTab('info')}
                 />
                 <SidebarItem
-                    icon="🚀"
+                    icon="RefreshCcw"
                     label="Updates"
                     active={activeTab === 'updates'}
                     onClick={() => setActiveTab('updates')}
@@ -82,7 +93,7 @@ export const Settings: React.FC<SettingsProps> = ({
             </div>
 
             {/* Content Area */}
-            <div style={{ flex: 1, padding: 40, overflowY: 'auto' }}>
+            <div style={{ flex: 1, padding: 40, overflowY: 'auto', minHeight: 0 }}>
                 {activeTab === 'personalization' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
                         <div>
@@ -312,7 +323,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick 
             fontWeight: active ? 600 : 400
         }}
     >
-        <span>{icon}</span>
+        <ModernIcon iconName={icon} size={24} gradient="transparent" />
         <span>{label}</span>
     </div>
 );

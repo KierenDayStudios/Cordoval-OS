@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useFileSystem, VirtualFile } from './FileSystem';
 import './FileExplorer.css';
+import { ModernIcon } from './ModernIcon';
+
 
 interface FileExplorerProps {
     onOpenFile?: (file: VirtualFile) => void;
@@ -119,14 +121,14 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onOpenFile, compact 
                         disabled={!currentFolder?.parentId}
                         title="Go up"
                     >
-                        ⬆️
+                        <ModernIcon iconName="ArrowUp" size={24} gradient="transparent" className="nav-icon-internal" />
                     </button>
                     <button
                         className="nav-btn"
                         onClick={() => navigateToFolder('root')}
                         title="Go to root"
                     >
-                        🏠
+                        <ModernIcon iconName="Home" size={24} gradient="transparent" className="nav-icon-internal" />
                     </button>
                 </div>
 
@@ -151,21 +153,21 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onOpenFile, compact 
                         onClick={() => setIsCreatingFolder(true)}
                         title="New folder"
                     >
-                        📁+
+                        <ModernIcon iconName="FolderPlus" size={24} gradient="transparent" className="nav-icon-internal" />
                     </button>
                     <button
                         className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                         onClick={() => setViewMode('grid')}
                         title="Grid view"
                     >
-                        ⊞
+                        <ModernIcon iconName="LayoutGrid" size={20} gradient="transparent" className="nav-icon-internal" />
                     </button>
                     <button
                         className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
                         onClick={() => setViewMode('list')}
                         title="List view"
                     >
-                        ☰
+                        <ModernIcon iconName="List" size={20} gradient="transparent" className="nav-icon-internal" />
                     </button>
                 </div>
             </div>
@@ -203,7 +205,12 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onOpenFile, compact 
                                 onDoubleClick={() => handleFileDoubleClick(file)}
                                 onContextMenu={(e) => handleContextMenu(e, file)}
                             >
-                                <div className="file-icon">{file.icon || (file.type === 'folder' ? '📁' : '📄')}</div>
+                                <div className="file-icon">
+                                    <ModernIcon
+                                        iconName={file.type === 'folder' ? 'file-explorer' : 'FileText'}
+                                        size={compact ? 40 : 64}
+                                    />
+                                </div>
                                 {editingFileId === file.id ? (
                                     <input
                                         type="text"
@@ -246,7 +253,12 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ onOpenFile, compact 
                                 onContextMenu={(e) => handleContextMenu(e, file)}
                             >
                                 <span className="col-name">
-                                    <span className="list-icon">{file.icon || (file.type === 'folder' ? '📁' : '📄')}</span>
+                                    <span className="list-icon">
+                                        <ModernIcon
+                                            iconName={file.type === 'folder' ? 'file-explorer' : 'FileText'}
+                                            size={24}
+                                        />
+                                    </span>
                                     {editingFileId === file.id ? (
                                         <input
                                             type="text"
