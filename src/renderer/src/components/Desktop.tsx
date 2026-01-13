@@ -579,6 +579,18 @@ export const Desktop = () => {
                 >
                     <ModernIcon iconName="Sparkles" size={30} gradient={isAIAssistantOpen ? "linear-gradient(135deg, #8b5cf6, #d946ef)" : "linear-gradient(135deg, #6366f1, #a855f7)"} />
                 </div>
+                <div
+                    className="taskbar-icon"
+                    onClick={() => {
+                        setIsAIAssistantOpen(true);
+                        // We'll pass a message to Noah to start listening
+                        window.dispatchEvent(new CustomEvent('noah-start-listening'));
+                    }}
+                    style={{ marginLeft: -10 }}
+                    title="Talk to Noah"
+                >
+                    <ModernIcon iconName="Mic" size={26} gradient="linear-gradient(135deg, #ef4444, #f87171)" />
+                </div>
                 {windows.map(win => (
                     <div key={win.id} className={`taskbar-icon ${activeWindowId === win.id && !win.isMinimized ? 'active' : ''}`} onClick={() => win.isMinimized ? focusWindow(win.id) : toggleMinimize(win.id)}>
                         <ModernIcon iconName={win.icon} size={36} />

@@ -1,12 +1,12 @@
-import React from 'react';
-import * as LucideIcons from 'lucide-react';
-import { LucideProps } from 'lucide-react';
+import React from 'react'
+import * as LucideIcons from 'lucide-react'
+import { LucideProps } from 'lucide-react'
 
 interface ModernIconProps {
-    iconName: string;
-    size?: number;
-    gradient?: string;
-    className?: string;
+    iconName: string
+    size?: number
+    gradient?: string
+    className?: string
 }
 
 const iconMapping: Record<string, keyof typeof LucideIcons> = {
@@ -43,8 +43,9 @@ const iconMapping: Record<string, keyof typeof LucideIcons> = {
     list: 'List',
     filetext: 'FileText',
     sparkles: 'Sparkles',
-    send: 'Send'
-};
+    send: 'Send',
+    mic: 'Mic'
+}
 
 const defaultGradients: Record<string, string> = {
     workspace: 'linear-gradient(135deg, #3b82f6, #2563eb)',
@@ -62,8 +63,9 @@ const defaultGradients: Record<string, string> = {
     settings: 'linear-gradient(135deg, #94a3b8, #64748b)',
     calculator: 'linear-gradient(135deg, #475569, #1e293b)',
     calendar: 'linear-gradient(135deg, #f87171, #ef4444)',
-    notes: 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-};
+    notes: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+    mic: 'linear-gradient(135deg, #ef4444, #f87171)'
+}
 
 export const ModernIcon = ({
     iconName,
@@ -72,11 +74,11 @@ export const ModernIcon = ({
     className
 }: ModernIconProps): React.ReactElement => {
     const lucideKey = iconMapping[iconName.toLowerCase()]
-    const IconComponent = lucideKey ? (LucideIcons[lucideKey] as React.FC<LucideProps>) : null;
+    const IconComponent = lucideKey ? (LucideIcons[lucideKey] as React.FC<LucideProps>) : null
     const background =
         gradient ||
         defaultGradients[iconName.toLowerCase()] ||
-        'linear-gradient(135deg, #6366f1, #4f46e5)';
+        'linear-gradient(135deg, #6366f1, #4f46e5)'
 
     return (
         <div
@@ -103,5 +105,5 @@ export const ModernIcon = ({
                 </span>
             )}
         </div>
-    );
-};
+    )
+}
