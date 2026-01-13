@@ -45,8 +45,8 @@ export class AIService {
     }
 
     private async callGemini(messages: ChatMessage[]): Promise<string> {
-        // Gemini 1.5 Flash is the modern standard for fast, efficient OS assistants
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.config!.apiKey}`;
+        // Gemini 2.0 Flash is the current stable model for fast, efficient AI assistants
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.config!.apiKey}`;
         
         console.log('[Noah AI] Attempting to connect to Gemini API...');
 
