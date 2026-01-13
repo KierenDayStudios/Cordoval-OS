@@ -125,6 +125,15 @@ const createWindow = (): void => {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  win.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const allowedPermissions = ['media', 'audioCapture', 'speechRecognition']
+    if (allowedPermissions.includes(permission)) {
+      callback(true)
+    } else {
+      callback(false)
+    }
+  })
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https:')) shell.openExternal(url)
     return { action: 'deny' }
