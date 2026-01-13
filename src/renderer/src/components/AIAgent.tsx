@@ -45,7 +45,10 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     const [goal, setGoal] = useState('');
 
     // AI Service Instance
-    const aiService = useRef(new AIService(currentUser?.id || 'default'));
+    const aiService = useRef<AIService | null>(null);
+    useEffect(() => {
+        aiService.current = new AIService(currentUser?.id || 'default');
+    }, [currentUser?.id]);
     const isProcessingRef = useRef(false);
 
     // --- Agent Actions ---
