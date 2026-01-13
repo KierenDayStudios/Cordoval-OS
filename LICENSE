@@ -1,21 +1,165 @@
-MIT License
+Cordoval OS
+Free End User Licence Agreement (EULA)
 
-Copyright (c) 2026 Kieren Day Studios
+Last updated: 08/01/2026
+Licensor: Kieren Day Studios (“KDS”, “we”, “us”, “our”)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Grant of Free Licence
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Kieren Day Studios grants you a free, non-exclusive, non-transferable, revocable licence to install and use Cordoval OS for lawful personal or business purposes, subject to this Agreement.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Cordoval OS is licensed, not sold.
+
+No ownership rights are transferred.
+
+2. Nature of the Software
+
+Cordoval OS is a desktop-style software environment built using web technologies. It provides a controlled workspace for accessing first-party KDS applications and approved web-based services through embedded web views.
+
+You acknowledge that:
+
+Cordoval OS runs on top of an existing operating system
+
+Applications may be delivered as web services
+
+Features and behaviour may evolve over time
+
+3. Permitted Use
+
+You may, at no cost:
+
+Use Cordoval OS for productivity, learning, or business workflows
+
+Access first-party KDS applications made available within the platform
+
+Receive updates and improvements
+
+Use the software on devices you own or control
+
+4. Restrictions
+
+You may not:
+
+Reverse engineer, decompile, or disassemble Cordoval OS
+
+Modify, fork, or create derivative works of the software
+
+Circumvent technical limitations or platform controls
+
+Redistribute, resell, or sublicense Cordoval OS
+
+Use the software for unlawful, harmful, or abusive purposes
+
+Free access does not grant freedom to interfere with the platform.
+
+5. First-Party KDS Applications
+
+All applications developed by Kieren Day Studios and provided within Cordoval OS:
+
+Are owned exclusively by KDS
+
+May be updated, changed, restricted, or removed at any time
+
+May have separate terms, usage limits, or future pricing
+
+Availability is not guaranteed indefinitely.
+
+6. Third-Party Content & Websites
+
+Cordoval OS may display third-party websites or services within embedded web views.
+
+KDS:
+
+Does not control third-party content
+
+Is not responsible for external services, data, or availability
+
+Provides access strictly “as-is”
+
+Use of third-party services is governed by their own terms.
+
+7. Data & Storage
+
+Cordoval OS may store data locally on your device, including:
+
+Preferences
+
+Layouts
+
+App states
+
+You are responsible for:
+
+Backing up your data
+
+Securing your device
+
+Ensuring compliance with any applicable laws
+
+KDS is not responsible for data loss unless explicitly stated otherwise.
+
+8. Updates & Changes
+
+KDS may:
+
+Release updates automatically or manually
+
+Add, modify, or remove features
+
+Introduce new applications or retire existing ones
+
+Continued use of Cordoval OS constitutes acceptance of updates.
+
+This ensures the platform can grow without disruption.
+
+9. Termination
+
+This licence remains effective until terminated.
+
+KDS may suspend or terminate access if you:
+
+Breach this Agreement
+
+Abuse the platform
+
+Attempt to bypass restrictions
+
+Upon termination, you must stop using Cordoval OS and delete all copies.
+
+10. Disclaimer of Warranties
+
+Cordoval OS is provided “as is” and “as available.”
+
+To the fullest extent permitted by law:
+
+No warranties of uninterrupted or error-free operation
+
+No guarantee of suitability for any specific purpose
+
+11. Limitation of Liability
+
+To the maximum extent permitted by law, KDS shall not be liable for:
+
+Loss of data
+
+Loss of profits
+
+Business interruption
+
+Indirect or consequential damages
+
+Total liability shall not exceed £0, as the software is provided free of charge.
+
+(This clause is important — and standard.)
+
+12. Governing Law
+
+This Agreement is governed by the laws of England and Wales.
+
+Any disputes shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+
+13. Contact
+
+Licensing or legal enquiries:
+Kieren Day Studios
+management@kierendaystudios.co.uk

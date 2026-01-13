@@ -18,6 +18,7 @@ asarUnpack:
 win:
   icon: build/icon.png
   executableName: CordovalOS
+  verifyUpdateCodeSignature: false
   target:
     - target: nsis
       arch:
@@ -72,17 +73,15 @@ npmRebuild: false
 
 # Auto-Update Configuration
 # For GitHub Releases (recommended for free hosting)
-publish:
-  provider: github
-  owner: KierenDayStudios
-  repo: Cordoval-OS
-  releaseType: release
+# Auto-Update Configuration removed per user request
+# publish: null
 
-# Uncomment below for custom server hosting
+# backup github config (disabled)
 # publish:
-#   provider: generic
-#   url: https://your-domain.com/releases/
-#   channel: latest
+#   provider: github
+#   owner: KierenDayStudios
+#   repo: Cordoval-OS
+#   releaseType: release
 
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
