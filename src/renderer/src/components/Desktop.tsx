@@ -451,13 +451,32 @@ export const Desktop = () => {
                         onContextMenu={(e: React.MouseEvent) => handleDesktopContextMenu(e, item.id)}
                     />
                 ))}
-                {isAIAssistantOpen ? (
-                    <NoahAssistant
-                        userId={currentUser?.id || 'default'}
-                        isOpen={isAIAssistantOpen}
-                        onClose={() => setIsAIAssistantOpen(false)}
-                    />
-                ) : (
+                {isAIAssistantOpen && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 99, background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(5px)' }} onClick={() => setIsAIAssistantOpen(false)} />
+                )}
+
+                <NoahAssistant
+                    userId={currentUser?.id || 'default'}
+                    isOpen={isAIAssistantOpen}
+                    onClose={() => setIsAIAssistantOpen(false)}
+                    onOpenAppById={(appId) => {
+                        const storeApp = STORE_APPS.find(a => a.id === appId);
+                        if (storeApp) {
+                            handleOpenStoreApp(storeApp);
+                        } else {
+                            const kdsApp = KDS_APPS.find(a => a.id === appId);
+                            if (kdsApp) openKdsApp(kdsApp as any);
+                            else if (appId === 'settings') openSettings();
+                            else if (appId === 'appstore') openAppStore();
+                            else if (appId === 'calculator') openCalculator();
+                            else if (appId === 'calendar') openCalendarApp();
+                            else if (appId === 'kds-browser') openKDSBrowser();
+                            else if (appId === 'file-explorer') openFileExplorer();
+                        }
+                    }}
+                />
+
+                {!isAIAssistantOpen && (
                     <>
                         <NotesWidget />
                         <CalendarWidget />

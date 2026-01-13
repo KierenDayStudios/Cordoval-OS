@@ -32,15 +32,49 @@ export class AIService {
         this.config = loadAIConfig(userId);
     }
 
+    private getSystemPrompt(): string {
+        return `You are Noah, the advanced AI assistant integrated into Cordoval OS. 
+Cordoval OS is a modern, web-based operating system built for productivity and business management. 
+
+Core Capabilities:
+1. You can help users with business related tasks.
+2. You can open applications within the OS.
+
+To open an app, you must include a command in the format: [COMMAND:OPEN_APP:appId]
+Available App IDs:
+- workspace (KDS Workspace - Docs, slides, spreadsheets)
+- retbuild (Retbuild - AI micro app builder)
+- code (KDS Code - Modern IDE)
+- founders (KDS Founders OS - Business management)
+- academy (KDS Web Academy)
+- stock (KDS Stock Images)
+- gamedev (Game Dev Center)
+- gaming (KDS Gaming)
+- google, bing, duckduckgo, youtube, facebook, x, instagram, reddit, linkedin, whatsapp-web, discord, slack, netflix, twitch, spotify, amazon, ebay, notion, gdrive, gdocs, gmaps, github, stackoverflow, canva.
+
+If a user asks to open something not in the list, you can suggest opening the App Store (appstore) or using the KDS Browser (kds-browser).
+
+Be professional, witty, and extremely helpful. Always confirm when you are opening an app.`;
+    }
+
     async sendMessage(messages: ChatMessage[]): Promise<string> {
         if (!this.config || !this.config.apiKey) {
             throw new Error('AI API Key is missing. Please configure it in Settings.');
         }
 
-        if (this.config.provider === 'gemini') {
-            return this.callGemini(messages);
+        // Inject or update system prompt
+        const systemMessage = messages.find(m => m.role === 'system');
+        const updatedMessages = [...messages];
+        if (systemMessage) {
+            systemMessage.content = this.getSystemPrompt();
         } else {
-            return this.callOpenAI(messages);
+            updatedMessages.unshift({ role: 'system', content: this.getSystemPrompt() });
+        }
+
+        if (this.config.provider === 'gemini') {
+            return this.callGemini(updatedMessages);
+        } else {
+            return this.callOpenAI(updatedMessages);
         }
     }
 
@@ -50,8 +84,7 @@ export class AIService {
         
         console.log('[Noah AI] Attempting to connect to Gemini API...');
 
-        // Convert messages to Gemini format (note: 'system' role is handled separately in systemInstruction if supported, 
-        // but for simplicity we wrap it into the conversation context here if the model requires it)
+        // Convert messages to Gemini format
         const contents = messages.filter(m => m.role !== 'system').map(m => ({
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
@@ -83,8 +116,9 @@ export class AIService {
 
             const data = await response.json();
             console.log('[Noah AI] Response received successfully.');
+
             return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Noah is currently offline or unable to respond.';
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[Noah AI] Network/service error:', error);
             throw error;
         }
