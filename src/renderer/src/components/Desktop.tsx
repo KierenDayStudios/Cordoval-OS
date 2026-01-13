@@ -498,7 +498,7 @@ export const Desktop = () => {
             )}
 
             {/* Desktop Content Area */}
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 50px)', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
                 {getDesktopItems().map((item, index) => (
                     <DraggableDesktopIcon
                         key={item.id}
@@ -963,6 +963,7 @@ const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accent
         setIsLoading(true);
 
         try {
+            console.log("Noah: Sending request to Gemini...");
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -984,11 +985,14 @@ const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accent
                 })
             });
 
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error.message || "API Error");
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Noah: API Response Error", errorData);
+                throw new Error(errorData.error?.message || `HTTP ${response.status}`);
             }
+
+            const data = await response.json();
+            console.log("Noah: Response received", data);
 
             const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
 
