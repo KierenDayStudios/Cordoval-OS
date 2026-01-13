@@ -10,15 +10,6 @@ interface NoahAssistantProps {
   onOpenAppById?: (appId: string) => void
 }
 
-interface SpeechRecognitionEvent extends Event {
-  resultIndex: number
-  results: SpeechRecognitionResultList
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string
-}
-
 export const NoahAssistant: React.FC<NoahAssistantProps> = ({
   userId,
   isOpen,
@@ -47,10 +38,13 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const aiService = useRef(new AIService(userId))
-  const recognitionRef = useRef<any>(null)
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isSpeakingRef = useRef(isSpeaking)
-  const isListeningRef = useRef(isListening)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isListeningRef = useRef(false)
+  const isSpeakingRef = useRef(false)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
 
   const scrollToBottom = (): void => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -81,16 +75,11 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
       voices.find((v) => v.name.includes('Google') || v.name.includes('Premium')) || voices[0]
     if (preferredVoice) utterance.voice = preferredVoice
 
-    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onstart = () => {
+      setIsSpeaking(true)
+    }
     utterance.onend = () => {
       setIsSpeaking(false)
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start()
-        } catch (e) {
-          // Already started
-        }
-      }
     }
 
     window.speechSynthesis.speak(utterance)
@@ -110,11 +99,9 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     try {
       const response = await aiService.current.sendMessage(newMessages)
 
-      // Handle app opening commands
       const appMatch = response.match(/\[COMMAND:OPEN_APP:(.+?)\]/)
       if (appMatch && onOpenAppById) {
-        const appId = appMatch[1].trim()
-        onOpenAppById(appId)
+        onOpenAppById(appMatch[1].trim())
       }
 
       const cleanResponse = response.replace(/\[COMMAND:OPEN_APP:.+?\]/g, '').trim()
@@ -131,42 +118,74 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     }
   }
 
-  const handleVoiceInputComplete = useCallback((transcript: string): void => {
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, _) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = (reader.result as string).split(',')[1]
+        resolve(base64String)
+      }
+      reader.readAsDataURL(blob)
+    })
+  }
+
+  const stopListeningAndProcess = async (): Promise<void> => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return
+
     setIsListening(false)
-    setInterimTranscript('')
-    if (transcript.trim()) {
-      const cleanTranscript = transcript.toLowerCase().includes('noah')
-        ? transcript.replace(/noah/i, '').trim()
-        : transcript
+    mediaRecorderRef.current.stop()
+    setInterimTranscript('Processing voice...')
+  }
 
-      if (cleanTranscript) {
-        setInput(cleanTranscript)
-        // We can't call handleSend directly here because of closure on 'messages'
-        // but handleSend is defined outside and uses setMessages(prev => ...)
-        // Actually handleSend uses 'messages' state directly.
-        // Better use a ref for handleSend if needed or just accept the state will be slightly stale?
-        // No, handleSend should use the latest messages.
+  const startListeningForQuery = useCallback(async (): Promise<void> => {
+    if (isListening || isSpeaking || isLoading) return
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-    }
-  }, [])
 
-  // Fix handleSend to use functional state updates where possible or ensure it's up to date
-  // For now we'll just declare it normally and it'll be fine as long as we don't spam.
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        stream.getTracks().forEach((t) => t.stop())
 
-  const startListeningForQuery = useCallback((): void => {
-    setIsListening(true)
-    setInterimTranscript('')
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch (e) {
-        // Ignore
+        if (audioBlob.size < 1000) {
+          setInterimTranscript('')
+          return
+        }
+
+        try {
+          const base64 = await blobToBase64(audioBlob)
+          const transcript = await aiService.current.transcribeAudio(base64, 'audio/webm')
+
+          if (transcript.trim()) {
+            setInterimTranscript('')
+            handleSend(transcript)
+          } else {
+            setInterimTranscript('No speech detected.')
+            setTimeout(() => setInterimTranscript(''), 2000)
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err)
+          setSttError('Voice recognition failed.')
+        }
       }
+
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setIsListening(true)
+      setInterimTranscript('Listening...')
+
+      if (!isOpen) onOpen()
+    } catch (err) {
+      console.error('Mic access denied:', err)
+      setSttError('Microphone not available.')
     }
-    if (!isOpen) {
-      onOpen()
-    }
-  }, [isOpen, onOpen])
+  }, [isListening, isSpeaking, isLoading, isOpen, onOpen])
 
   useEffect(() => {
     const handleStartListening = () => {
@@ -176,152 +195,56 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
     return () => window.removeEventListener('noah-start-listening', handleStartListening)
   }, [startListeningForQuery])
 
+  // Pseudo-VAD and Vol Meter
   useEffect(() => {
-    let recognition: any = null
-    let restartTimeout: NodeJS.Timeout | null = null
-    let consecutiveErrors = 0
+    let stream: MediaStream | null = null
 
-    let micStream: MediaStream | null = null
-
-    const initRecognition = async () => {
-      // Prime Mic & Level Meter
+    const initMonitor = async () => {
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        setSttError(null)
-
-        // Setup volume meter
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
         const analyser = audioContext.createAnalyser()
-        const source = audioContext.createMediaStreamSource(micStream)
+        const source = audioContext.createMediaStreamSource(stream)
         analyser.fftSize = 256
+        analyserRef.current = analyser
         source.connect(analyser)
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount)
-        const updateLevel = () => {
-          if (!isListeningRef.current) {
-            setMicLevel(0)
-            return
-          }
+        const update = () => {
           analyser.getByteFrequencyData(dataArray)
-          const sum = dataArray.reduce((innerSum, value) => innerSum + value, 0)
+          const sum = dataArray.reduce((s, v) => s + v, 0)
           const average = sum / dataArray.length
           setMicLevel(average)
-          requestAnimationFrame(updateLevel)
-        }
-        updateLevel()
 
-        // We don't stop the stream immediately if we want to keep the meter running
-        // but we should manage it. For now, let's keep it simple.
-        // stream.getTracks().forEach((t) => t.stop())
-      } catch (err) {
-        console.error('Noah: Mic access denied', err)
-        setSttError('Microphone access denied. Please enable it in your browser settings.')
-        return
-      }
-
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      if (!SpeechRecognition) {
-        setSttError('Speech Recognition not supported by your browser.')
-        return
-      }
-
-      recognition = new SpeechRecognition()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = 'en-US'
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let currentTranscript = ''
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          currentTranscript += event.results[i][0].transcript
-        }
-
-        setInterimTranscript(currentTranscript)
-
-        if (
-          !isListeningRef.current &&
-          !isSpeakingRef.current &&
-          currentTranscript.toLowerCase().includes('noah')
-        ) {
-          startListeningForQuery()
-          return
-        }
-
-        if (isListeningRef.current) {
-          if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current)
-          silenceTimeoutRef.current = setTimeout(() => {
-            handleVoiceInputComplete(currentTranscript)
-            // Trigger send after voice complete
-            if (currentTranscript.trim()) {
-              const clean = currentTranscript.replace(/noah/i, '').trim()
-              if (clean) handleSend(clean)
-            }
-          }, 2000)
-        }
-      }
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Noah STT Error:', event.error)
-        if (event.error === 'network') {
-          consecutiveErrors = 5
-          setSttError(
-            'Voice recognition unavailable (Network Error). Check your internet or API keys.'
-          )
-        } else {
-          setSttError(`Voice error: ${event.error}`)
-        }
-      }
-
-      recognition.onstart = () => {
-        console.log('Noah STT: Started')
-        consecutiveErrors = 0
-        setSttError(null) // Clear error on successful start
-      }
-
-      recognition.onaudiostart = () => console.log('Noah STT: Audio Start')
-      recognition.onsoundstart = () => console.log('Noah STT: Sound Start')
-      recognition.onspeechstart = () => console.log('Noah STT: Speech Start')
-      recognition.onspeechend = () => console.log('Noah STT: Speech End')
-      recognition.onsoundend = () => console.log('Noah STT: Sound End')
-      recognition.onaudioend = () => console.log('Noah STT: Audio End')
-
-      recognition.onend = () => {
-        console.log('Noah STT: Ended')
-        const backoff = consecutiveErrors >= 5 ? 30000 : 3000
-        if (restartTimeout) clearTimeout(restartTimeout)
-        restartTimeout = setTimeout(() => {
-          if (!isSpeakingRef.current && !isListeningRef.current) {
-            try {
-              recognition.start()
-            } catch (e) {
-              consecutiveErrors++
+          // Silence detection when listening
+          if (isListeningRef.current) {
+            if (average > 15) {
+              if (silenceTimerRef.current) {
+                clearTimeout(silenceTimerRef.current)
+                silenceTimerRef.current = null
+              }
+            } else if (!silenceTimerRef.current) {
+              silenceTimerRef.current = setTimeout(() => {
+                stopListeningAndProcess()
+              }, 2000)
             }
           }
-        }, backoff)
-      }
 
-      recognitionRef.current = recognition
-      try {
-        recognition.start()
+          animationFrameRef.current = requestAnimationFrame(update)
+        }
+        update()
       } catch (e) {
-        // Ignore
+        console.error('Monitor fail:', e)
       }
     }
 
-    initRecognition()
+    initMonitor()
 
     return () => {
-      if (recognition) {
-        recognition.onend = null
-        recognition.stop()
-      }
-      if (micStream) {
-        micStream.getTracks().forEach((t) => t.stop())
-      }
-      if (restartTimeout) clearTimeout(restartTimeout)
+      if (stream) stream.getTracks().forEach((t) => t.stop())
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
     }
-  }, [handleVoiceInputComplete, startListeningForQuery])
+  }, [])
 
   return (
     <>
@@ -400,7 +323,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
                     : isThinking
                       ? 'Thinking...'
                       : sttError
-                        ? 'Voice Offline'
+                        ? 'Speech Error'
                         : 'Active Context'}
               </p>
             </div>
@@ -450,41 +373,26 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
                     color: msg.role === 'assistant' ? '#333' : 'white',
                     boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
                     borderBottomLeftRadius: msg.role === 'assistant' ? 4 : 20,
-                    borderBottomRightRadius: msg.role === 'user' ? 4 : 20
+                    borderBottomRightRadius: msg.role === 'user' ? 4 : 20,
+                    fontWeight: msg.role === 'user' ? 500 : 400
                   }}
                 >
                   {msg.content}
                 </div>
               ))}
-            {isThinking && (
-              <div
-                className="chat-bubble assistant"
-                style={{
-                  alignSelf: 'flex-start',
-                  background: 'white',
-                  padding: '12px 16px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  color: '#888'
-                }}
-              >
-                Thinking...
-              </div>
-            )}
+            {isThinking && <div className="typing-indicator">Noah is thinking...</div>}
             {interimTranscript && (
               <div
-                className="chat-bubble user interim"
+                className="interim-transcript"
                 style={{
-                  alignSelf: 'flex-end',
-                  background: 'rgba(0,0,0,0.05)',
-                  padding: '10px 14px',
-                  borderRadius: 20,
+                  padding: '10px 20px',
                   fontSize: 12,
                   color: '#666',
-                  fontStyle: 'italic'
+                  fontStyle: 'italic',
+                  textAlign: 'center'
                 }}
               >
-                {interimTranscript}...
+                {interimTranscript}
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -504,7 +412,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
             <div style={{ position: 'relative', flex: 1 }}>
               <input
                 type="text"
-                placeholder={isListening ? 'Listening to you...' : 'Talk to Noah...'}
+                placeholder={isListening ? 'Listening...' : 'Talk to Noah...'}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
@@ -565,8 +473,8 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
               <ModernIcon iconName="Send" size={18} gradient="transparent" />
             </button>
             <button
-              onClick={startListeningForQuery}
-              disabled={isListening || isLoading}
+              onClick={isListening ? stopListeningAndProcess : startListeningForQuery}
+              disabled={isSpeaking || isLoading}
               style={{
                 width: 44,
                 height: 44,
@@ -583,21 +491,6 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({
               <ModernIcon iconName="Mic" size={20} gradient="transparent" />
             </button>
           </div>
-          <style>{`
-            @keyframes scaleY {
-              0%, 100% { transform: scaleY(1); }
-              50% { transform: scaleY(1.8); }
-            }
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes pulse {
-              0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-              70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-              100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-            }
-          `}</style>
         </div>
       )}
     </>
