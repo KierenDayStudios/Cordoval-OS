@@ -9,16 +9,11 @@ import { Calculator } from './Calculator'
 import { CalendarApp } from './Calendar'
 import { ModernIcon } from './ModernIcon'
 import { NoahAssistant } from './NoahAssistant'
+import { AIAgent } from './AIAgent'
 import { useFileSystem } from './FileSystem'
 
-// --- TypeScript Definitions ---
-declare global {
-  interface Window {
-    require: any
-  }
-}
 
-// --- CONFIGURATION: KDS ECOSYSTEM ---
+
 const KDS_APPS = [
   {
     id: 'workspace',
@@ -192,6 +187,7 @@ export const Desktop = () => {
   const { currentUser, logout } = useUser()
   const userId = currentUser!.id
   const { createFile, files, updateFileContent } = useFileSystem()
+  const [isAgentOpen, setIsAgentOpen] = useState(false) // New state
 
   const [windows, setWindows] = useState<WindowState[]>([])
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null)
@@ -218,7 +214,10 @@ export const Desktop = () => {
     percent?: number
     message?: string
   } | null>(null)
-  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false)
+  const showUpdatePromptState = useState(false)
+  const [showUpdatePrompt, setShowUpdatePrompt] = showUpdatePromptState
+
+
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent-color', accentColor)
@@ -519,8 +518,32 @@ export const Desktop = () => {
     )
   }
 
+  // New Helper for AI Agent
+  const openAppById = (id: string) => {
+    const storeApp = STORE_APPS.find((a) => a.id === id)
+    if (storeApp) {
+      handleOpenStoreApp(storeApp)
+      return
+    }
+    const kdsApp = KDS_APPS.find((a) => a.id === id)
+    if (kdsApp) { openKdsApp(kdsApp as any); return }
+
+    if (id === 'settings') { openSettings(); return }
+    if (id === 'appstore' || id === 'store') { openAppStore(); return }
+    if (id === 'calculator') { openCalculator(); return }
+    if (id === 'calendar') { openCalendarApp(); return }
+    if (id === 'kds-browser' || id === 'browser') { openKDSBrowser(); return }
+    if (id === 'file-explorer' || id === 'explorer') { openFileExplorer(); return }
+  }
+
   const getDesktopItems = (): DesktopItem[] => {
     const allItems: DesktopItem[] = [
+      {
+        id: 'cortex-agent',
+        title: 'Cortex Agent',
+        icon: 'Sparkles',
+        action: () => setIsAgentOpen(true)
+      },
       {
         id: 'kds-browser',
         title: 'KDS Browser',
@@ -849,6 +872,16 @@ export const Desktop = () => {
             // Open the app window immediately
             openApp(appId, appName, '🛠️', <GeneratedApp code={code} />)
           }}
+        />
+
+        <AIAgent
+          isOpen={isAgentOpen}
+          onClose={() => setIsAgentOpen(false)}
+          windows={windows}
+          onMoveWindow={(id, x, y) => updateWindowBounds(id, { x, y })}
+          onCloseWindow={closeWindow}
+          onFocusWindow={focusWindow}
+          onOpenApp={openAppById}
         />
 
         {!isAIAssistantOpen && (

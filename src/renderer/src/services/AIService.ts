@@ -108,9 +108,7 @@ Instructions:
 
     const systemMessage = messages.find((m) => m.role === 'system')
     const updatedMessages = [...messages]
-    if (systemMessage) {
-      systemMessage.content = this.getSystemPrompt()
-    } else {
+    if (!systemMessage) {
       updatedMessages.unshift({ role: 'system', content: this.getSystemPrompt() })
     }
 
