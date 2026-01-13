@@ -125,14 +125,19 @@ const createWindow = (): void => {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  // Handle persistent permission checks
+  win.webContents.session.setPermissionCheckHandler((_webContents, permission) => {
+    return ['media', 'audioCapture', 'speechRecognition'].includes(permission)
+  })
+
   win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
-    console.log(`[Electron] Permission requested: ${permission}`);
+    console.log(`[Electron] Permission requested: ${permission}`)
     const allowedPermissions = ['media', 'audioCapture', 'speechRecognition']
     if (allowedPermissions.includes(permission)) {
-      console.log(`[Electron] Permission granted: ${permission}`);
+      console.log(`[Electron] Permission granted: ${permission}`)
       callback(true)
     } else {
-      console.log(`[Electron] Permission denied: ${permission}`);
+      console.log(`[Electron] Permission denied: ${permission}`)
       callback(false)
     }
   })

@@ -57,8 +57,20 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
 
     // Initialize Speech Recognition
     useEffect(() => {
+        const primeMic = async (): Promise<void> => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Noah: Microphone primed successfully.');
+                stream.getTracks().forEach(track => track.stop());
+            } catch (err) {
+                console.error('Noah: Failed to prime microphone:', err);
+            }
+        };
+
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) return;
+
+        primeMic();
 
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
@@ -106,24 +118,24 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
         let restartTimeout: NodeJS.Timeout | null = null;
         let consecutiveErrors = 0;
 
+        recognition.onstart = () => {
+            console.log('Noah Speech Recognition: Engine Started Successfully');
+            consecutiveErrors = 0;
+        };
+
         recognition.onend = () => {
-            console.log('Noah Speech Recognition engine stopped.');
-            // Only restart if we haven't hit too many consecutive errors
-            if (consecutiveErrors < 5) {
-                if (restartTimeout) clearTimeout(restartTimeout);
-                restartTimeout = setTimeout(() => {
-                    if (!isSpeakingRef.current) {
-                        try {
-                            recognition.start();
-                            consecutiveErrors = 0;
-                        } catch (e) {
-                            consecutiveErrors++;
-                        }
+            console.log('Noah Speech Recognition: Engine Stopped');
+            // Longer backoff to prevent spam if network is failing
+            if (restartTimeout) clearTimeout(restartTimeout);
+            restartTimeout = setTimeout(() => {
+                if (!isSpeakingRef.current) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        consecutiveErrors++;
                     }
-                }, 2000); // 2 second backoff
-            } else {
-                console.error('Noah Speech Recognition paused due to excessive errors.');
-            }
+                }
+            }, 3000);
         };
 
         recognitionRef.current = recognition;
