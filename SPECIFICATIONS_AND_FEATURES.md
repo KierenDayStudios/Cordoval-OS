@@ -24,7 +24,8 @@ Cordoval OS is a simulated desktop environment built on web technologies (Electr
 ### 🎨 Personalization
 *   **Settings App**: A dedicated control panel for system customization.
 *   **Accent Colors**: Choose from a palette of vibrant colors (Magenta, Purple, Blue, Teal, etc.) that theme the System Tray, Taskbar highlights, and Window accents instantly.
-*   **Custom Wallpapers**: Paste any image URL to set it as your desktop background, or choose from curated presets.
+*   **Display Scaling**: Adjust the UI zoom factor from 50% to 150%. This allows users to scale the interface to their preference, especially useful for different monitor resolutions.
+*   **Custom Wallpapers**: Choose from curated high-quality presets or paste any image URL to set it as your desktop background.
 
 ### 🚀 Taskbar & Start Menu
 *   **Glassmorphism Utility Bar**: A bottom taskbar featuring a Start button, open app indicators, and a system tray with clock/status.
@@ -43,11 +44,15 @@ Cordoval OS is a simulated desktop environment built on web technologies (Electr
 4.  **Settings**: Configuration hub for the OS.
 5.  **Terminal / Calculator**: Access to system utilities (simulated or pass-through).
 
-### KDS Ecosystem (Pre-installed)
-*   **KDS Workspace**: Business productivity suite.
-*   **KDS Founders OS**: Management dashboard.
-*   **KDS Code**: Development environment.
-*   **KDS Academy**: Educational resources.
+### KDS Ecosystem (Integrated Work Tools)
+*   **KDS Workspace**: Docs, slides, spreadsheets, and project management.
+*   **Retbuild**: Build micro apps and software prototypes with Gemini AI.
+*   **KDS Founders OS**: Business management dashboard for ideas and roadmaps.
+*   **KDS Code**: Modern IDE for web development.
+*   **KDS Web Academy**: Interactive coding education platform.
+*   **Game Dev Center**: Submission tools for the KDS gaming platform.
+*   **KDS Stock Images**: Commercially free stock image library.
+*   **KDS Gaming**: Indie gaming platform discovery hub.
 
 ## 4. How to Use Cordoval OS
 
