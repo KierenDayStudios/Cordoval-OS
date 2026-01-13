@@ -459,6 +459,7 @@ export const Desktop = () => {
                     userId={currentUser?.id || 'default'}
                     isOpen={isAIAssistantOpen}
                     onClose={() => setIsAIAssistantOpen(false)}
+                    onOpen={() => setIsAIAssistantOpen(true)}
                     onOpenAppById={(appId) => {
                         const storeApp = STORE_APPS.find(a => a.id === appId);
                         if (storeApp) {
@@ -467,11 +468,11 @@ export const Desktop = () => {
                             const kdsApp = KDS_APPS.find(a => a.id === appId);
                             if (kdsApp) openKdsApp(kdsApp as any);
                             else if (appId === 'settings') openSettings();
-                            else if (appId === 'appstore') openAppStore();
+                            else if (appId === 'appstore' || appId === 'store') openAppStore();
                             else if (appId === 'calculator') openCalculator();
                             else if (appId === 'calendar') openCalendarApp();
-                            else if (appId === 'kds-browser') openKDSBrowser();
-                            else if (appId === 'file-explorer') openFileExplorer();
+                            else if (appId === 'kds-browser' || appId === 'browser') openKDSBrowser();
+                            else if (appId === 'file-explorer' || appId === 'explorer' || appId === 'fileexplorer') openFileExplorer();
                         }
                     }}
                 />

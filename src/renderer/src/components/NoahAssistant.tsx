@@ -6,10 +6,20 @@ interface NoahAssistantProps {
     userId: string;
     isOpen: boolean;
     onClose: () => void;
+    onOpen: () => void;
     onOpenAppById?: (appId: string) => void;
 }
 
-export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, onClose, onOpenAppById }) => {
+interface SpeechRecognitionEvent extends Event {
+    resultIndex: number;
+    results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+}
+
+export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, onClose, onOpen, onOpenAppById }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([
         { role: 'system', content: 'You are Noah, the advanced AI assistant integrated into Cordoval OS.' },
         { role: 'assistant', content: 'Hello! I am Noah. How can I assist you with your Cordoval OS experience today?' }
@@ -43,7 +53,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
             recognition.interimResults = true;
             recognition.lang = 'en-US';
 
-            recognition.onresult = (event: any) => {
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
                 let currentTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     currentTranscript += event.results[i][0].transcript;
@@ -66,7 +76,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
                 }
             };
 
-            recognition.onerror = (event: any) => {
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
                 console.error('Speech recognition error:', event.error);
                 setIsListening(false);
             };
@@ -92,8 +102,7 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
         setInterimTranscript('');
         // Trigger UI open if not open
         if (!isOpen) {
-            // We can't easily trigger the prop but we can show that we are active
-            onClose(); // This is a bit hacky, it would toggle in Desktop
+            onOpen();
         }
     };
 

@@ -11,7 +11,7 @@ export const CalendarApp = () => {
         const month = currentDate.getMonth();
         const totalDays = daysInMonth(year, month);
         const startDay = firstDayOfMonth(year, month);
-        const days = [];
+        const days: React.ReactNode[] = [];
 
         // Padding for the first week
         for (let i = 0; i < startDay; i++) {

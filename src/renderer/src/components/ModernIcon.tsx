@@ -70,7 +70,7 @@ export const ModernIcon = ({
     size = 48,
     gradient,
     className
-}: ModernIconProps): JSX.Element => {
+}: ModernIconProps): React.ReactElement => {
     const lucideKey = iconMapping[iconName.toLowerCase()];
     const IconComponent = lucideKey ? (LucideIcons[lucideKey] as React.FC<LucideProps>) : null;
     const background =
