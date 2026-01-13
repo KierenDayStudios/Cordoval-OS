@@ -71,10 +71,17 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
                 currentTranscript += event.results[i][0].transcript;
             }
 
+            console.log('Noah Speech Status:', {
+                isListening: isListeningRef.current,
+                isSpeaking: isSpeakingRef.current,
+                transcript: currentTranscript
+            });
+
             setInterimTranscript(currentTranscript);
 
             // Wake word detection
             if (!isListeningRef.current && !isSpeakingRef.current && currentTranscript.toLowerCase().includes('noah')) {
+                console.log('Noah detected wake word!');
                 startListeningForQuery();
                 return;
             }
@@ -88,13 +95,34 @@ export const NoahAssistant: React.FC<NoahAssistantProps> = ({ userId, isOpen, on
         };
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-            console.error('Speech recognition error:', event.error);
+            console.error('Noah Speech Recognition Error:', event.error);
+            if (event.error === 'not-allowed') {
+                console.warn('Microphone access denied.');
+            } else if (event.error === 'network') {
+                console.error('Noah Speech Recognition network error. This often means Google Speech API is blocked or unavailable in this environment.');
+            }
         };
 
+        let restartTimeout: NodeJS.Timeout | null = null;
+        let consecutiveErrors = 0;
+
         recognition.onend = () => {
-            // Keep active if not speaking
-            if (!isSpeakingRef.current) {
-                try { recognition.start(); } catch (e) { }
+            console.log('Noah Speech Recognition engine stopped.');
+            // Only restart if we haven't hit too many consecutive errors
+            if (consecutiveErrors < 5) {
+                if (restartTimeout) clearTimeout(restartTimeout);
+                restartTimeout = setTimeout(() => {
+                    if (!isSpeakingRef.current) {
+                        try {
+                            recognition.start();
+                            consecutiveErrors = 0;
+                        } catch (e) {
+                            consecutiveErrors++;
+                        }
+                    }
+                }, 2000); // 2 second backoff
+            } else {
+                console.error('Noah Speech Recognition paused due to excessive errors.');
             }
         };
 

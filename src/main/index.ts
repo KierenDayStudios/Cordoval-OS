@@ -125,11 +125,14 @@ const createWindow = (): void => {
     win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  win.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+  win.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+    console.log(`[Electron] Permission requested: ${permission}`);
     const allowedPermissions = ['media', 'audioCapture', 'speechRecognition']
     if (allowedPermissions.includes(permission)) {
+      console.log(`[Electron] Permission granted: ${permission}`);
       callback(true)
     } else {
+      console.log(`[Electron] Permission denied: ${permission}`);
       callback(false)
     }
   })
