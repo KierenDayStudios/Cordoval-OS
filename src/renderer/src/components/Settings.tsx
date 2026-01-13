@@ -242,37 +242,125 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
     const [config, setConfig] = useState<AIConfig>(() => loadAIConfig(userId) || { provider: 'gemini', apiKey: '' });
     const [saved, setSaved] = useState(false);
 
+    // Memory State
+    const { files, createFile, createFolder, updateFileContent, getFileContent } = useFileSystem();
+    const [memory, setMemory] = useState<Record<string, string>>({});
+    const [newKey, setNewKey] = useState('');
+    const [newValue, setNewValue] = useState('');
+    const [memoryFileId, setMemoryFileId] = useState<string | null>(null);
+
+    // Load Memory on Mount
+    useEffect(() => {
+        const loadMemory = async () => {
+            // Find or Create /system/ai/memory.json
+            let systemFolder = files.find(f => f.name === 'System' && f.type === 'folder');
+            if (!systemFolder) systemFolder = createFolder('System', 'root');
+
+            let aiFolder = files.find(f => f.name === 'AI' && f.type === 'folder' && f.parentId === systemFolder.id);
+            if (!aiFolder) aiFolder = createFolder('AI', systemFolder.id);
+
+            let memFile = files.find(f => f.name === 'memory.json' && f.parentId === aiFolder!.id);
+            if (!memFile) {
+                memFile = createFile('memory.json', '{}', 'application/json', aiFolder!.id);
+            }
+
+            setMemoryFileId(memFile.id);
+            if (memFile.content) {
+                try {
+                    setMemory(JSON.parse(memFile.content));
+                } catch {
+                    setMemory({});
+                }
+            }
+        };
+        loadMemory();
+    }, [files]); // Reacting to files allows it to load after creation
+
     const handleSave = () => {
         saveAIConfig(userId, config);
+        // Save Memory
+        if (memoryFileId) {
+            updateFileContent(memoryFileId, JSON.stringify(memory, null, 2));
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
     };
 
+    const addMemory = () => {
+        if (newKey && newValue) {
+            setMemory(prev => ({ ...prev, [newKey]: newValue }));
+            setNewKey('');
+            setNewValue('');
+        }
+    };
+
+    const deleteMemory = (key: string) => {
+        const newMem = { ...memory };
+        delete newMem[key];
+        setMemory(newMem);
+    };
+
     return (
         <div>
-            <h2 style={{ marginBottom: 20, borderBottom: '1px solid #ddd', paddingBottom: 10 }}>AI Assistant Configuration</h2>
+            <h2 style={{ marginBottom: 20, borderBottom: '1px solid #ddd', paddingBottom: 10 }}>AgentX Configuration</h2>
             <div style={{ background: 'white', padding: 25, borderRadius: 12, border: '1px solid #eee', display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6 }}>Cordoval OS uses a <strong>Bring Your Own Key</strong> system. Your API keys are stored locally in your browser and are never sent to our servers.</p>
+
+                {/* Identity */}
                 <div>
-                    <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 600 }}>AI Provider</label>
-                    <select value={config.provider} onChange={(e) => setConfig({ ...config, provider: e.target.value as any })} style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc' }}>
-                        <option value="gemini">Google Gemini (Recommended - Free Tier Available)</option>
-                        <option value="openai">OpenAI (ChatGPT)</option>
-                    </select>
+                    <h3 style={{ fontSize: 16, marginBottom: 15, color: '#333' }}>Identity</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Agent Name</label>
+                            <input type="text" value={config.agentName || ''} onChange={(e) => setConfig({ ...config, agentName: e.target.value })} placeholder="AgentX" style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc' }} />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>AI Provider</label>
+                            <select value={config.provider} onChange={(e) => setConfig({ ...config, provider: e.target.value as any })} style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc' }}>
+                                <option value="gemini">Google Gemini (Recommended)</option>
+                                <option value="openai">OpenAI (ChatGPT)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: 15 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Personality (System Prompt)</label>
+                        <textarea
+                            value={config.systemPrompt || ''}
+                            onChange={(e) => setConfig({ ...config, systemPrompt: e.target.value })}
+                            placeholder="You are a helpful assistant..."
+                            style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc', minHeight: 80, fontFamily: 'sans-serif' }}
+                        />
+                    </div>
+                    <div style={{ marginTop: 15 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>API Key</label>
+                        <input type="password" value={config.apiKey} onChange={(e) => setConfig({ ...config, apiKey: e.target.value })} placeholder="sk-..." style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc' }} />
+                    </div>
                 </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 600 }}>API Key</label>
-                    <input type="password" placeholder="Enter your API key here..." value={config.apiKey} onChange={(e) => setConfig({ ...config, apiKey: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ccc' }} />
-                    <p style={{ fontSize: 11, color: '#888', marginTop: 6 }}>
-                        {config.provider === 'gemini' ? (
-                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: accentColor }}>Get a Gemini API Key for free here</a>
-                        ) : (
-                            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" style={{ color: accentColor }}>Get an OpenAI API Key here</a>
-                        )}
-                    </p>
+
+                {/* Memory Management */}
+                <div style={{ borderTop: '1px solid #eee', paddingTop: 20 }}>
+                    <h3 style={{ fontSize: 16, marginBottom: 15, color: '#333' }}>Long-Term Memory</h3>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>The AI remembers these facts about you and the platform. Stored in <code>/System/AI/memory.json</code>.</p>
+
+                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+                        <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                            {Object.entries(memory).map(([k, v]) => (
+                                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 13 }}>
+                                    <div><span style={{ fontWeight: 600, color: '#374151' }}>{k}:</span> <span style={{ color: '#4b5563' }}>{v}</span></div>
+                                    <button onClick={() => deleteMemory(k)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+                                </div>
+                            ))}
+                            {Object.keys(memory).length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No memories yet. Add one below!</div>}
+                        </div>
+                        <div style={{ display: 'flex', padding: 10, gap: 10, background: 'white', borderTop: '1px solid #e5e7eb' }}>
+                            <input type="text" placeholder="Key (e.g. My Name)" value={newKey} onChange={(e) => setNewKey(e.target.value)} style={{ flex: 1, padding: '6px 10px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13 }} />
+                            <input type="text" placeholder="Value (e.g. Paul)" value={newValue} onChange={(e) => setNewValue(e.target.value)} style={{ flex: 2, padding: '6px 10px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13 }} />
+                            <button onClick={addMemory} style={{ padding: '6px 12px', background: accentColor, color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Add</button>
+                        </div>
+                    </div>
                 </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <button onClick={handleSave} style={{ padding: '10px 25px', borderRadius: 6, background: accentColor, color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Save Configuration</button>
+                    <button onClick={handleSave} style={{ padding: '10px 25px', borderRadius: 6, background: accentColor, color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Save All Changes</button>
                     {saved && <span style={{ color: '#059669', fontSize: 13, fontWeight: 500 }}>✓ Settings Saved</span>}
                 </div>
             </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AIService, ChatMessage } from '../services/AIService';
+import { AIService, ChatMessage, loadAIConfig } from '../services/AIService';
 import { useUser } from '../context/UserContext';
+import { useFileSystem } from './FileSystem';
+import { ModernIcon } from './ModernIcon';
 
 // --- Types ---
 interface AIAgentProps {
@@ -26,8 +28,15 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     onOpenApp
 }) => {
     const { currentUser } = useUser();
+    const { files, getFileContent } = useFileSystem();
+
+    // Config & Identity
+    const [agentName, setAgentName] = useState('AgentX');
+
+    // UI State
     const [controlLevel, setControlLevel] = useState<ControlLevel>('copilot');
     const [status, setStatus] = useState('Idle');
+    const [isFullScreen, setIsFullScreen] = useState(false);
 
     // Cursor State (Visual) & Ref (Logic)
     const [agentCursor, setAgentCursor] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
@@ -48,8 +57,27 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     const aiService = useRef<AIService | null>(null);
     useEffect(() => {
         aiService.current = new AIService(currentUser?.id || 'default');
-    }, [currentUser?.id]);
+        // Load config to set name
+        const config = loadAIConfig(currentUser?.id || 'default');
+        if (config?.agentName) setAgentName(config.agentName);
+    }, [currentUser?.id, isOpen]); // Reload config when opened
+
     const isProcessingRef = useRef(false);
+
+    // --- Memory Retrieval ---
+    const getMemoryContext = useCallback(() => {
+        // Try to find /System/AI/memory.json
+        // We do a rough search since matching paths in flat array is complex without IDs
+        // But we know the structure created in Settings: System -> AI -> memory.json
+        // For robustness, we search for 'memory.json' directly or use the file loaded.
+
+        // Detailed lookup:
+        const sys = files.find(f => f.name === 'System');
+        const ai = sys ? files.find(f => f.name === 'AI' && f.parentId === sys.id) : null;
+        const memFile = ai ? files.find(f => f.name === 'memory.json' && f.parentId === ai.id) : null;
+
+        return memFile?.content || '';
+    }, [files]);
 
     // --- Agent Actions ---
     const log = useCallback((msg: string) => setLogs(prev => [msg, ...prev].slice(0, 50)), []);
@@ -102,7 +130,7 @@ export const AIAgent: React.FC<AIAgentProps> = ({
             if (controlLevel !== 'autonomous' || !isOpen || !goal || isProcessingRef.current) return;
 
             isProcessingRef.current = true;
-            setStatus('Thinking (Auto)...');
+            setStatus(`${agentName} is thinking...`);
 
             try {
                 const currentWindows = windowsRef.current;
@@ -130,9 +158,42 @@ Output ONE command from:
 If you need to think, output a thought using normal text, then the command.
 `;
                 if (!aiService.current) throw new Error('AI Service not ready');
+
+                // Inject Memory Context implicitly via AIService, but here we trigger the request
+                // We'll pass an empty system msg first, relying on AIService to prepend the System Prompt
+                // Wait, AIService prepends prompt if not present. So we pass statePrompt as SYSTEM.
+                // But we need to update the AIService to use the FRESH memory.
+
+                // TRICKY: The AIService.getSystemPrompt reads memory from params. 
+                // We need to re-generate the system prompt with fresh memory for THIS turn if we want it live.
+                // However, AIService usually caches/uses its internal method.
+                // Let's modify AIService usage: We can pass the memoryContext in the system message? 
+                // No, AIService handles system prompt. 
+                // Currently AIService logic: if (!systemMessage) prepend default.
+                // So if we send a System message, it WON'T prepend the default logic (Name/Personality).
+                // FIX: We should let the AIService prepend it. We will send the State Prompt as a USER or ASSISTANT message?
+                // No, State Prompt is System-level info.
+
+                // BETTER APPROACH: We manually construct the full prompt here including memory?
+                // OR we update AIService to force-inject memory.
+                // Let's stick to: We send the State Prompt. AIService sees a 'system' message and might skip its default.
+                // The fix in AIService was `if (!systemMessage)`.
+                // So if we send `role: 'system'`, existing logic skips the personality injection.
+                // WE SHOULD CHANGE role to 'developer' or just 'user' for the state prompt, OR update AIService.
+                // For now, let's just prepend the Memory/Personality to the State Prompt here to be safe and robust.
+
+                const memContext = getMemoryContext();
+                const config = loadAIConfig(currentUser?.id || 'default');
+                const persona = config?.systemPrompt || 'You are a helpful AI.';
+                const name = config?.agentName || 'AgentX';
+
+                const fullSystemPrompt = `You are ${name}. ${persona}
+Memory: ${memContext}
+${statePrompt}`;
+
                 const response = await aiService.current.sendMessage([
-                    { role: 'system', content: statePrompt },
-                    { role: 'user', content: 'Analyze the current state and provide the next command.' }
+                    { role: 'system', content: fullSystemPrompt },
+                    { role: 'user', content: 'Analyze state and execute next step.' }
                 ]);
 
                 // Update logs with thought
@@ -160,12 +221,12 @@ If you need to think, output a thought using normal text, then the command.
         }
 
         return () => clearInterval(timer);
-    }, [controlLevel, goal, isOpen, executeCommand]); // Removed windows/cursor from deps
+    }, [controlLevel, goal, isOpen, executeCommand, files, agentName]);
 
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // If autonomous mode is active, set input as goal
+        // Autonomous Goal Setting
         if (controlLevel === 'autonomous') {
             setGoal(input);
             setMessages(prev => [...prev, { role: 'user', content: `Set Goal: ${input}` }]);
@@ -177,14 +238,21 @@ If you need to think, output a thought using normal text, then the command.
         const userMsg: ChatMessage = { role: 'user', content: input };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
-        setStatus('Thinking...');
+        setStatus(`${agentName} is thinking...`);
 
         const currentWindows = windowsRef.current;
         const windowList = currentWindows.map(w => `${w.id} (${w.title})`).join(', ');
-        const contextMsg = `
+        const memContext = getMemoryContext();
+
+        // We construct the "System" prompt with context here to ensure Freshness
+        const config = loadAIConfig(currentUser?.id || 'default');
+        const persona = config?.systemPrompt || 'You are a helpful AI.';
+        const name = config?.agentName || 'AgentX';
+
+        const contextMsg = `You are ${name}. ${persona}
+Memory: ${memContext}
 [COPILOT MODE]
 Context: Windows: ${windowList}, Screen: ${window.innerWidth}x${window.innerHeight}.
-User Request: ${input}.
 Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], etc.
 `;
 
@@ -193,6 +261,7 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
                 log('AI Service not initialized');
                 return;
             }
+            // we pass the system prompt manually, so AIService won't double-add (due to its check)
             const response = await aiService.current.sendMessage([
                 { role: 'system', content: contextMsg },
                 ...messages,
@@ -220,38 +289,70 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
 
     return (
         <>
-            {/* Agent "Body" / Window */}
+            {/* Agent Window */}
             <div style={{
                 position: 'fixed',
-                top: 100,
-                right: 100,
-                width: 350,
-                height: 500,
-                background: 'rgba(25, 25, 35, 0.95)',
-                backdropFilter: 'blur(20px)',
-                borderRadius: 20,
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                top: isFullScreen ? 0 : 80,
+                right: isFullScreen ? 0 : 80,
+                width: isFullScreen ? '100vw' : 400,
+                height: isFullScreen ? '100vh' : 750, // Taller default height
+                background: 'rgba(20, 20, 25, 0.95)',
+                backdropFilter: 'blur(30px)',
+                borderRadius: isFullScreen ? 0 : 16,
+                border: isFullScreen ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
                 display: 'flex',
                 flexDirection: 'column',
-                zIndex: 9999, // Highest
+                zIndex: 9999, // Highest priority
                 color: 'white',
-                fontFamily: 'Inter, sans-serif'
+                fontFamily: 'Inter, sans-serif',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}>
                 {/* Header */}
-                <div style={{ padding: 20, borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: status === 'Idle' || status === 'Observing...' ? '#10b981' : '#f59e0b', boxShadow: '0 0 10px currentColor' }} />
-                        <span style={{ fontWeight: 600 }}>Cortex Agent</span>
+                <div style={{
+                    padding: '15px 20px',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'rgba(255,255,255,0.02)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                            width: 32, height: 32,
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)'
+                        }}>
+                            <ModernIcon iconName="Sparkles" size={18} color="white" />
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.01em' }}>{agentName}</div>
+                            <div style={{ fontSize: 11, opacity: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: status === 'Idle' || status === 'Observing...' ? '#10b981' : '#f59e0b', boxShadow: '0 0 5px currentColor' }} />
+                                {status}
+                            </div>
+                        </div>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.5 }}>✕</button>
+
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                            onClick={() => setIsFullScreen(!isFullScreen)}
+                            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.6, padding: 5 }}
+                            title="Toggle Fullscreen"
+                        >
+                            <ModernIcon iconName={isFullScreen ? "Minimize" : "Maximize"} size={16} />
+                        </button>
+                        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.6, padding: 5 }}>✕</button>
+                    </div>
                 </div>
 
-                {/* Control Level */}
+                {/* Control Level & Stats */}
                 <div style={{ padding: 20, background: 'rgba(0,0,0,0.2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 10, opacity: 0.7 }}>
-                        <span>Copilot</span>
-                        <span>Autonomous</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 15, fontWeight: 500, color: '#aaa' }}>
+                        <span style={{ color: controlLevel === 'copilot' ? '#fff' : 'inherit' }}>Copilot Mode</span>
+                        <span style={{ color: controlLevel === 'autonomous' ? '#8b5cf6' : 'inherit' }}>Autonomous Mode</span>
                     </div>
                     <input
                         type="range"
@@ -262,59 +363,119 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
                             setControlLevel(val);
                             if (val === 'copilot') setGoal('');
                         }}
-                        style={{ width: '100%', accentColor: '#8b5cf6' }}
+                        style={{ width: '100%', accentColor: '#8b5cf6', cursor: 'pointer' }}
                     />
-                    <p style={{ fontSize: 11, marginTop: 10, color: '#aaa', minHeight: 30 }}>
+                    <div style={{
+                        marginTop: 15,
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '10px 15px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: 'rgba(255,255,255,0.7)',
+                        display: 'flex', alignItems: 'center', gap: 10
+                    }}>
+                        <ModernIcon iconName="Info" size={14} />
                         {controlLevel === 'copilot'
-                            ? 'I will suggest actions but wait for your confirmation.'
-                            : goal ? `Working on: "${goal}"` : 'Ready. Give me a goal below.'}
-                    </p>
-                </div>
-
-                {/* Logs / Chat */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: 20, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {messages.map((m, i) => (
-                        <div key={i} style={{
-                            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                            background: m.role === 'user' ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
-                            padding: '8px 12px',
-                            borderRadius: 12,
-                            maxWidth: '85%'
-                        }}>
-                            {m.content}
-                        </div>
-                    ))}
-                    {status !== 'Idle' && <div style={{ fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>{status}</div>}
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.5 }}>ACTION LOG</span>
-                        {logs.map((l, i) => (
-                            <div key={i} style={{ fontFamily: 'monospace', fontSize: 11, opacity: 0.7, margin: '2px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{`> ${l}`}</div>
-                        ))}
+                            ? <span>Ask me to open apps, move windows, or draft code. I'll wait for your command.</span>
+                            : <span>I will continuously observe and act to achieve: <strong style={{ color: '#fff' }}>{goal || '...'}</strong></span>}
                     </div>
                 </div>
 
-                {/* Input */}
-                <div style={{ padding: 15, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder={controlLevel === 'autonomous' && !goal ? "Set a Goal (e.g. 'Organize windows')..." : "Message..."}
-                        style={{
-                            width: '100%',
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            padding: '10px',
-                            borderRadius: 8,
-                            color: 'white',
-                            outline: 'none'
-                        }}
-                    />
+                {/* Chat Area */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
+                    {messages.length === 0 && (
+                        <div style={{ textAlign: 'center', marginTop: 40, opacity: 0.3 }}>
+                            <ModernIcon iconName="Sparkles" size={40} />
+                            <p style={{ marginTop: 10, fontSize: 14 }}>How can I help you today?</p>
+                        </div>
+                    )}
+                    {messages.map((m, i) => (
+                        <div key={i} style={{
+                            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                            maxWidth: '85%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: m.role === 'user' ? 'flex-end' : 'flex-start'
+                        }}>
+                            <div style={{
+                                background: m.role === 'user' ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'rgba(255,255,255,0.08)',
+                                padding: '10px 16px',
+                                borderRadius: 16,
+                                borderBottomRightRadius: m.role === 'user' ? 4 : 16,
+                                borderBottomLeftRadius: m.role !== 'user' ? 4 : 16,
+                                fontSize: 14,
+                                lineHeight: 1.5,
+                                border: m.role !== 'user' ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}>
+                                {m.content}
+                            </div>
+                            <span style={{ fontSize: 10, opacity: 0.3, marginTop: 4, padding: '0 4px' }}>
+                                {m.role === 'user' ? 'You' : agentName}
+                            </span>
+                        </div>
+                    ))}
+                    <div style={{ height: 20 }} />
+                </div>
+
+                {/* Action Log (Bottom Panel) */}
+                <div style={{ padding: '10px 20px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid rgba(255,255,255,0.05)', maxHeight: 150, overflowY: 'auto' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.4, marginBottom: 5, letterSpacing: '0.05em' }}>SYSTEM LOGS</div>
+                    {logs.map((l, i) => (
+                        <div key={i} style={{ fontFamily: 'monospace', fontSize: 11, opacity: 0.6, margin: '3px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: l.includes('Error') ? '#f87171' : 'inherit' }}>
+                            <span style={{ opacity: 0.5, marginRight: 8 }}>{`>`}</span>
+                            {l}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Input Area */}
+                <div style={{ padding: 20, paddingTop: 15, background: 'rgba(20, 20, 25, 0.95)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                            placeholder={controlLevel === 'autonomous' && !goal ? `Tell ${agentName} what to achieve...` : `Message ${agentName}...`}
+                            style={{
+                                width: '100%',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                padding: '14px 20px',
+                                borderRadius: 12,
+                                color: 'white',
+                                outline: 'none',
+                                fontSize: 14,
+                                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s'
+                            }}
+                        />
+                        <button
+                            onClick={handleSend}
+                            style={{
+                                position: 'absolute',
+                                right: 8,
+                                top: 8,
+                                background: input.trim() ? '#8b5cf6' : 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                width: 30, height: 30,
+                                borderRadius: 8,
+                                color: 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: input.trim() ? 'pointer' : 'default',
+                                opacity: input.trim() ? 1 : 0.5,
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <ModernIcon iconName="ArrowRight" size={16} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Simulated Agent Cursor */}
+            {/* Agent Cursor (Visual) */}
             <div style={{
                 position: 'fixed',
                 left: agentCursor.x,
@@ -323,11 +484,28 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
                 height: 20,
                 pointerEvents: 'none',
                 zIndex: 10000,
-                transition: 'all 0.3s ease-out'
+                transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
             }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="#8b5cf6" stroke="white" strokeWidth="2" />
                 </svg>
+                {status !== 'Idle' && (
+                    <div style={{
+                        position: 'absolute',
+                        left: 14, top: 14,
+                        background: '#8b5cf6',
+                        color: 'white',
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        whiteSpace: 'nowrap',
+                        fontWeight: 600,
+                        opacity: 0.9
+                    }}>
+                        {agentName}
+                    </div>
+                )}
             </div>
         </>
     );

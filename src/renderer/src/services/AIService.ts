@@ -3,6 +3,8 @@ export type AIServiceType = 'gemini' | 'openai'
 export interface AIConfig {
   provider: AIServiceType
   apiKey: string
+  agentName?: string
+  systemPrompt?: string
 }
 
 export interface ChatMessage {
@@ -50,55 +52,40 @@ export class AIService {
     this.config = loadAIConfig(userId)
   }
 
-  private getSystemPrompt(): string {
-    const memory = loadNoahMemory(this.userId)
-    const memoryString =
-      Object.keys(memory).length > 0
-        ? JSON.stringify(memory, null, 2)
-        : 'None yet. You should learn about the user!'
+  private getSystemPrompt(memoryContext: string = ''): string {
+    const memoryString = memoryContext || (Object.keys(loadNoahMemory(this.userId)).length > 0
+        ? JSON.stringify(loadNoahMemory(this.userId), null, 2)
+        : 'None yet.');
 
-    return `You are Noah, the advanced AI assistant integrated into Cordoval OS.
-Cordoval OS is a modern, high-performance web-based operating system.
+    const agentName = this.config?.agentName || 'AgentX';
+    const personality = this.config?.systemPrompt || 'You are a helpful, witty, and highly capable AI assistant.';
+
+    return `You are ${agentName}, an advanced AI integrated into Cordoval OS.
+${personality}
 
 Core Capabilities:
 1. Open apps using: [COMMAND:OPEN_APP:appId]
-2. LEARN & REMEMBER: You have a long-term memory (Brain). You can save facts, preferences, or notes about the user using: [COMMAND:SAVE_MEMORY:key:value]
-3. Platform Presence: You are part of the Cordoval ecosystem. You know the layout: Taskbar (bottom), Start Menu (left corner), Desktop Widgets (right).
+2. LEARN & REMEMBER: [COMMAND:SAVE_MEMORY:key:value]
+3. Platform Presence: You know the layout: Taskbar (bottom), Start Menu (left corner), Desktop Widgets (right).
 
-Your Current Long-Term Memory (Brain):
+Your Memory (Brain):
 ${memoryString}
 
 Available App IDs:
-- workspace (KDS Workspace - Docs, slides, spreadsheets)
-- retbuild (Retbuild - AI micro app builder)
-- code (KDS Code - Modern IDE)
-- founders (KDS Founders OS - Business management)
-- academy (KDS Web Academy)
-- stock (KDS Stock Images)
-- gamedev (Game Dev Center)
-- gaming (KDS Gaming)
-- settings (System Settings & Personalization)
-- appstore (Cordoval App Store)
-- calculator (System Calculator)
-- calendar (System Calendar)
-- kds-browser (KDS Web Browser)
-- file-explorer (File Explorer)
+- workspace, retbuild, code, founders, academy, stock, gamedev, gaming, settings, appstore, calculator, calendar, kds-browser, file-explorer
 
 Web Apps (open in frame):
 - google, youtube, facebook, x, reddit, linkedin, discord, slack, notion, spotify, canva, github.
 
 Instructions:
 - If the user tells you something important (name, job, preference), call [COMMAND:SAVE_MEMORY:key:value].
-- APP GENERATION: If the user asks for a feature or app that Cordoval doesn't have (e.g., "make me a simple drawing app"), generate a micro-app using exactly this format:
+- APP GENERATION: To create a micro-app, use:
 [NOAH_APP_START:appName]
 <!DOCTYPE html>
-... code here ...
+... code ...
 [NOAH_APP_END]
-- APP UPDATING: To edit an app you just made, provide the full updated [NOAH_APP_START:appName]...[NOAH_APP_END] block.
-- PERSISTENCE: Tell the user that their new app is saved to the Desktop and the Documents folder.
-- Speak naturally. Be professional yet witty.
-- Keep responses concise for text-to-speech.
-`
+- Speak naturally as ${agentName}.
+`;
   }
 
   async sendMessage(messages: ChatMessage[]): Promise<string> {
