@@ -495,9 +495,14 @@ export const Desktop = () => {
                     />
                 ))}
 
-                {/* Aesthetic Desktop Widgets Inspired by Image */}
-                <CalendarWidget />
-                <MusicWidget />
+                {/* Noah AI Assistant Widget replaces old widgets */}
+                <NoahWidget
+                    openAppStore={openAppStore}
+                    openBrowser={openKDSBrowser}
+                    openFiles={openFileExplorer}
+                    openSettings={openSettings}
+                    accentColor={accentColor}
+                />
             </div>
 
             {windows.map(win => (
@@ -914,75 +919,147 @@ const DraggableWindow = ({ windowState, isActive, onFocus, onClose, onMinimize, 
         </div>
     );
 };
-const CalendarWidget = () => {
-    const now = new Date();
-    const dayNumeric = now.getDate();
-    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const NoahWidget = ({ openAppStore, openBrowser, openFiles, openSettings, accentColor }: any) => {
+    const [apiKey, setApiKey] = useState(() => localStorage.getItem('noah-api-key') || '');
+    const [input, setInput] = useState('');
+    const [messages, setMessages] = useState<{ role: 'user' | 'noah', content: string }[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showKeyInput, setShowKeyInput] = useState(!apiKey);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    const saveApiKey = () => {
+        localStorage.setItem('noah-api-key', apiKey);
+        setShowKeyInput(false);
+    };
+
+    const handleSend = async () => {
+        if (!input.trim() || !apiKey) return;
+
+        const userMsg = input.trim();
+        setInput('');
+        setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setIsLoading(true);
+
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `You are Noah, the AI for Cordoval OS. Help the user. 
+                            If the user wants to open an app, use these exact codes in your response: 
+                            [OPEN:APPSTORE] to open the store, 
+                            [OPEN:BROWSER] to open web browser, 
+                            [OPEN:FILES] to open file explorer, 
+                            [OPEN:SETTINGS] to open settings.
+                            
+                            The user can also ask you to correct spelling or rewrite things. Be concise.
+                            
+                            User message: ${userMsg}`
+                        }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
+
+            // Handle system commands
+            if (reply.includes('[OPEN:APPSTORE]')) openAppStore();
+            if (reply.includes('[OPEN:BROWSER]')) openBrowser();
+            if (reply.includes('[OPEN:FILES]')) openFiles();
+            if (reply.includes('[OPEN:SETTINGS]')) openSettings();
+
+            setMessages(prev => [...prev, { role: 'noah', content: reply.replace(/\[OPEN:.*\]/g, '').trim() }]);
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'noah', content: "Error: Make sure your API key is valid and you're online." }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div style={{
-            position: 'absolute', bottom: 100, right: 30, width: 260,
-            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)',
-            borderRadius: 24, padding: 20, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
-            boxShadow: '0 15px 45px rgba(0,0,0,0.1)'
+            position: 'absolute', bottom: 100, right: 30, width: 320, height: 420,
+            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(40px)',
+            borderRadius: 24, padding: 0, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 15px 45px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{now.toLocaleDateString('en-US', { weekday: 'long' })},</h2>
-            <h2 style={{ margin: '0 0 15px 0', fontSize: 18, fontWeight: 800 }}>{dayNumeric} {now.toLocaleDateString('en-US', { month: 'long' })} {now.getFullYear()}</h2>
-
-            <div style={{ opacity: 0.6, fontSize: 12, fontWeight: 700, marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
-                <span>{monthYear}</span>
-                <span>▲ ▼</span>
+            <div style={{ padding: '15px 20px', background: 'rgba(255,255,255,0.4)', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: accentColor }}></div>
+                    <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: 0.5 }}>NOAH AI</span>
+                </div>
+                <button onClick={() => setShowKeyInput(!showKeyInput)} style={{ background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', opacity: 0.5 }}>🔑</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, textAlign: 'center', fontSize: 10, fontWeight: 700 }}>
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <div key={d} style={{ color: 'rgba(0,0,0,0.3)' }}>{d}</div>)}
-                {Array.from({ length: 31 }, (_, i) => (
-                    <div key={i} style={{
-                        padding: '4px 0', borderRadius: 8,
-                        background: (i + 1) === dayNumeric ? 'var(--accent-color)' : 'transparent',
-                        color: (i + 1) === dayNumeric ? 'white' : 'inherit'
-                    }}>
-                        {i + 1}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '15px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {showKeyInput ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.6 }}>ENTER GEMINI API KEY</span>
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                            placeholder="Paste key here..."
+                            style={{ padding: '10px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.5)' }}
+                        />
+                        <button onClick={saveApiKey} style={{ padding: '10px', borderRadius: 10, background: accentColor, color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Connect Noah</button>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ fontSize: 10, textAlign: 'center', color: accentColor, textDecoration: 'none' }}>Get a free key here</a>
                     </div>
-                ))}
+                ) : (
+                    <>
+                        {messages.length === 0 && (
+                            <div style={{ textAlign: 'center', marginTop: 100, opacity: 0.3 }}>
+                                <div style={{ fontSize: 40, marginBottom: 10 }}>🤖</div>
+                                <div style={{ fontSize: 13, fontWeight: 600 }}>How can I help you today?</div>
+                            </div>
+                        )}
+                        {messages.map((msg, i) => (
+                            <div key={i} style={{
+                                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                maxWidth: '85%',
+                                padding: '10px 14px',
+                                borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                background: msg.role === 'user' ? accentColor : 'rgba(255,255,255,0.8)',
+                                color: msg.role === 'user' ? 'white' : '#333',
+                                fontSize: 12,
+                                fontWeight: 500,
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+                            }}>
+                                {msg.content}
+                            </div>
+                        ))}
+                        {isLoading && <div style={{ fontSize: 11, opacity: 0.5 }}>Noah is thinking...</div>}
+                        <div ref={chatEndRef} />
+                    </>
+                )}
             </div>
 
-            <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,0,0,0.4)', marginBottom: 8 }}>TODAY</div>
-                <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.03)', borderRadius: 10, fontSize: 11, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 4, height: 14, background: 'var(--accent-color)', borderRadius: 2 }} />
-                    No events scheduled
+            {!showKeyInput && (
+                <div style={{ padding: '15px', display: 'flex', gap: 10 }}>
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        placeholder="Type a request..."
+                        style={{ flex: 1, padding: '10px 15px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.05)', background: 'rgba(255,255,255,0.8)', outline: 'none', fontSize: 12 }}
+                    />
+                    <button
+                        onClick={handleSend}
+                        style={{ width: 36, height: 36, borderRadius: 12, background: accentColor, color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                        🚀
+                    </button>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
 
-const MusicWidget = () => {
-    return (
-        <div style={{
-            position: 'absolute', top: 30, left: 30, width: 280,
-            background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(30px)',
-            borderRadius: 20, padding: 15, color: '#333', border: '1px solid rgba(255, 255, 255, 0.5)',
-            boxShadow: '0 15px 45px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: 12
-        }}>
-            <div style={{ height: 4, background: 'rgba(0,0,0,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ width: '45%', height: '100%', background: '#444' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🎵</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lose Yourself to Dance (feat. Pharrell Williams)</div>
-                    <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', fontWeight: 500 }}>Daft Punk • Random Access Memories</div>
-                </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 18, opacity: 0.8 }}>
-                <span>⏪</span>
-                <span>⏸️</span>
-                <span>⏩</span>
-            </div>
-        </div>
-    );
-};
