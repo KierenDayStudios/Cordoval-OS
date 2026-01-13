@@ -144,9 +144,9 @@ If you need to think, output a thought using normal text, then the command.
                     await executeCommand(match[1]);
                 }
 
-            } catch (e) {
+            } catch (e: any) {
                 console.error(e);
-                log('Auto Loop Error');
+                log(`Error: ${e.message || e}`);
             } finally {
                 isProcessingRef.current = false;
                 setStatus('Observing...');
