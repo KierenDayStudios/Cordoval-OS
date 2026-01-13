@@ -28,7 +28,22 @@ const iconMapping: Record<string, keyof typeof LucideIcons> = {
     'calendar-app': 'Calendar',
     terminal: 'Terminal',
     cmd: 'Terminal',
-    notes: 'StickyNote'
+    notes: 'StickyNote',
+    layoutgrid: 'LayoutGrid',
+    wifi: 'Wifi',
+    wifioff: 'WifiOff',
+    volumex: 'VolumeX',
+    volume2: 'Volume2',
+    palette: 'Palette',
+    info: 'Info',
+    refreshccw: 'RefreshCcw',
+    folderplus: 'FolderPlus',
+    arrowup: 'ArrowUp',
+    home: 'Home',
+    list: 'List',
+    filetext: 'FileText',
+    sparkles: 'Sparkles',
+    send: 'Send'
 };
 
 const defaultGradients: Record<string, string> = {
@@ -50,7 +65,12 @@ const defaultGradients: Record<string, string> = {
     notes: 'linear-gradient(135deg, #fbbf24, #f59e0b)'
 };
 
-export const ModernIcon = ({ iconName, size = 48, gradient, className }: ModernIconProps) => {
+export const ModernIcon = ({
+    iconName,
+    size = 48,
+    gradient,
+    className
+}: ModernIconProps): JSX.Element => {
     const lucideKey = iconMapping[iconName.toLowerCase()];
     const IconComponent = lucideKey ? (LucideIcons[lucideKey] as React.FC<LucideProps>) : null;
     const background =

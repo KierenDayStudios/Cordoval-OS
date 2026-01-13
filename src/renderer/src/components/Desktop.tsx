@@ -8,6 +8,7 @@ import { useUser } from '../context/UserContext';
 import { Calculator } from './Calculator';
 import { CalendarApp } from './Calendar';
 import { ModernIcon } from './ModernIcon';
+import { NoahAssistant } from './NoahAssistant';
 
 
 // --- TypeScript Definitions ---
@@ -41,6 +42,13 @@ const loadIconPositions = (userId: string) => {
 const loadInstalledApps = (userId: string): string[] => {
     try {
         const saved = localStorage.getItem(getStorageKey(userId, 'cordoval-installed-apps'));
+        return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+};
+
+const loadHiddenApps = (userId: string): string[] => {
+    try {
+        const saved = localStorage.getItem(getStorageKey(userId, 'cordoval-hidden-apps'));
         return saved ? JSON.parse(saved) : [];
     } catch { return []; }
 };
@@ -88,6 +96,9 @@ export const Desktop = () => {
     const [accentColor, setAccentColor] = useState(userSettings.accentColor);
     const [zoom, setZoom] = useState(userSettings.zoom || 1.0);
     const [iconPositions, setIconPositions] = useState<Record<string, { x: number, y: number }>>(() => loadIconPositions(userId));
+    const [hiddenApps, setHiddenApps] = useState<string[]>(() => loadHiddenApps(userId));
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, itemId: string } | null>(null);
+    const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
 
     const [updateInfo, setUpdateInfo] = useState<{ status: string; version?: string; percent?: number; message?: string } | null>(null);
     const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
@@ -110,6 +121,10 @@ export const Desktop = () => {
     useEffect(() => {
         localStorage.setItem(getStorageKey(userId, 'cordoval-installed-apps'), JSON.stringify(installedApps));
     }, [installedApps, userId]);
+
+    useEffect(() => {
+        localStorage.setItem(getStorageKey(userId, 'cordoval-hidden-apps'), JSON.stringify(hiddenApps));
+    }, [hiddenApps, userId]);
 
     useEffect(() => {
         try {
@@ -312,15 +327,27 @@ export const Desktop = () => {
     };
 
     const getDesktopItems = (): DesktopItem[] => {
-        const items: DesktopItem[] = [
+        const allItems: DesktopItem[] = [
             { id: 'kds-browser', title: 'KDS Browser', icon: 'kds-browser', action: () => openKDSBrowser() },
             { id: 'file-explorer', title: 'File Explorer', icon: 'file-explorer', action: openFileExplorer },
             { id: 'app-store', title: 'App Store', icon: 'app-store', action: openAppStore },
         ];
-        KDS_APPS.forEach(app => { items.push({ id: app.id, title: app.name, icon: app.icon, action: () => openKdsApp(app), gradient: app.gradient } as any); });
-        getInstalledStoreApps().forEach(app => { items.push({ id: app.id, title: app.name, icon: app.icon, action: () => handleOpenStoreApp(app) }); });
-        items.push({ id: 'settings', title: 'Settings', icon: '⚙️', action: openSettings });
-        return items;
+        KDS_APPS.forEach(app => { allItems.push({ id: app.id, title: app.name, icon: app.icon, action: () => openKdsApp(app), gradient: app.gradient } as any); });
+        getInstalledStoreApps().forEach(app => { allItems.push({ id: app.id, title: app.name, icon: app.icon, action: () => handleOpenStoreApp(app) }); });
+        allItems.push({ id: 'settings', title: 'Settings', icon: 'settings', action: openSettings });
+
+        return allItems.filter(item => !hiddenApps.includes(item.id));
+    };
+
+    const handleRemoveFromDesktop = (id: string) => {
+        setHiddenApps(prev => [...prev, id]);
+        setContextMenu(null);
+    };
+
+    const handleDesktopContextMenu = (e: React.MouseEvent, itemId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({ x: e.clientX, y: e.clientY, itemId });
     };
 
     const updateIconPosition = (id: string, x: number, y: number) => { setIconPositions(prev => ({ ...prev, [id]: { x, y } })); };
@@ -378,7 +405,7 @@ export const Desktop = () => {
     }, []);
 
     return (
-        <div className="desktop" style={{ backgroundImage: `url(${wallpaper})` }} onClick={() => setShowStartMenu(false)}>
+        <div className="desktop" style={{ backgroundImage: `url(${wallpaper})` }} onClick={() => { setShowStartMenu(false); setContextMenu(null); }}>
             {showUpdatePrompt && updateInfo && (
                 <div style={{
                     position: 'fixed', bottom: 80, right: 30, width: 320, zIndex: 10000,
@@ -415,10 +442,38 @@ export const Desktop = () => {
 
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
                 {getDesktopItems().map((item, index) => (
-                    <DraggableDesktopIcon key={item.id} item={item} index={index} position={iconPositions[item.id]} onUpdatePosition={updateIconPosition} />
+                    <DraggableDesktopIcon
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        position={iconPositions[item.id]}
+                        onUpdatePosition={updateIconPosition}
+                        onContextMenu={(e: React.MouseEvent) => handleDesktopContextMenu(e, item.id)}
+                    />
                 ))}
-                <NotesWidget />
-                <CalendarWidget />
+                {isAIAssistantOpen ? (
+                    <NoahAssistant
+                        userId={currentUser?.id || 'default'}
+                        isOpen={isAIAssistantOpen}
+                        onClose={() => setIsAIAssistantOpen(false)}
+                    />
+                ) : (
+                    <>
+                        <NotesWidget />
+                        <CalendarWidget />
+                    </>
+                )}
+
+                {contextMenu && (
+                    <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => {
+                            const item = getDesktopItems().find(i => i.id === contextMenu.itemId);
+                            if (item) item.action();
+                            setContextMenu(null);
+                        }}>Open</button>
+                        <button onClick={() => handleRemoveFromDesktop(contextMenu.itemId)}>Remove from Desktop</button>
+                    </div>
+                )}
             </div>
 
             {windows.map(win => (
@@ -496,6 +551,14 @@ export const Desktop = () => {
                 <div className={`taskbar-icon start-btn ${showStartMenu ? 'active' : ''}`} onClick={() => setShowStartMenu(!showStartMenu)}>
                     <ModernIcon iconName="LayoutGrid" size={38} gradient="linear-gradient(135deg, #000, #333)" />
                 </div>
+                <div
+                    className={`taskbar-icon ${isAIAssistantOpen ? 'active' : ''}`}
+                    onClick={() => setIsAIAssistantOpen(!isAIAssistantOpen)}
+                    style={{ marginLeft: -5 }}
+                    title="Noah AI"
+                >
+                    <ModernIcon iconName="Sparkles" size={30} gradient={isAIAssistantOpen ? "linear-gradient(135deg, #8b5cf6, #d946ef)" : "linear-gradient(135deg, #6366f1, #a855f7)"} />
+                </div>
                 {windows.map(win => (
                     <div key={win.id} className={`taskbar-icon ${activeWindowId === win.id && !win.isMinimized ? 'active' : ''}`} onClick={() => win.isMinimized ? focusWindow(win.id) : toggleMinimize(win.id)}>
                         <ModernIcon iconName={win.icon} size={36} />
@@ -536,7 +599,7 @@ function StartAppItem({ name, icon, onClick, gradient }: { name: string, icon: s
     );
 }
 
-const DraggableDesktopIcon = ({ item, index, position, onUpdatePosition }: any) => {
+const DraggableDesktopIcon = ({ item, index, position, onUpdatePosition, onContextMenu }: any) => {
     const taskbarHeight = 50;
     const startY = 30;
     const itemHeight = 110;
@@ -569,7 +632,7 @@ const DraggableDesktopIcon = ({ item, index, position, onUpdatePosition }: any) 
     }, [isDragging, item.id]);
     const handleClick = () => { if (!isDragging) item.action(); };
     return (
-        <div onMouseDown={handleMouseDown} onClick={handleClick} style={{ position: 'absolute', left: currentX, top: currentY, width: 85, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 8, borderRadius: 6, textShadow: '0 1px 3px black', zIndex: isDragging ? 9999 : 1 }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+        <div onMouseDown={handleMouseDown} onClick={handleClick} onContextMenu={onContextMenu} style={{ position: 'absolute', left: currentX, top: currentY, width: 85, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 8, borderRadius: 6, textShadow: '0 1px 3px black', zIndex: isDragging ? 9999 : 1 }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
             <AppIcon icon={item.icon} gradient={item.gradient} size={64} />
             <div style={{ fontSize: 12, textAlign: 'center', fontWeight: 600, lineHeight: 1.2, userSelect: 'none', pointerEvents: 'none', color: 'white' }}>{item.title}</div>
         </div>
