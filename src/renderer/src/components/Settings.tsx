@@ -13,10 +13,11 @@ interface SettingsProps {
 }
 
 const WALLPAPERS = [
-    { name: 'Blue Abstract', url: 'https://storage.cloud.google.com/randingstorage/blue-abstract-5120x5120-25023.jpg' },
+    { name: 'Abstract Blue Wave', url: './wallpapers/abstract_blue_wave.png' },
+    { name: 'Dark Mountain', url: './wallpapers/dark_mountain.png' },
+    { name: 'Neon City', url: './wallpapers/neon_city.png' },
+    { name: 'Blue Abstract (Classic)', url: 'https://storage.cloud.google.com/randingstorage/blue-abstract-5120x5120-25023.jpg' },
     { name: 'Dark Nebula', url: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2048&auto=format&fit=crop' },
-    { name: 'Modern Architecture', url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2048&auto=format&fit=crop' },
-    { name: 'Mountain Sunset', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2048&auto=format&fit=crop' },
 ];
 
 const ACCENT_COLORS = [
