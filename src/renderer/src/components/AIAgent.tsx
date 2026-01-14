@@ -3,6 +3,8 @@ import { AIService, ChatMessage, loadAIConfig } from '../services/AIService';
 import { useUser } from '../context/UserContext';
 import { useFileSystem } from './FileSystem';
 import { ModernIcon } from './ModernIcon';
+import { AgentActions } from '../services/AgentActions';
+import { getKnowledgeStore, AIOptimizedKnowledge } from '../services/SecureKnowledgeStore';
 
 // --- Types ---
 interface AIAgentProps {
@@ -37,6 +39,11 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     const [controlLevel, setControlLevel] = useState<ControlLevel>('copilot');
     const [status, setStatus] = useState('Idle');
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [trainingMode, setTrainingMode] = useState(false); // SECRET TRAINING MODE
+
+    // Services
+    const agentActions = useRef(new AgentActions());
+    const [learnedBehaviors, setLearnedBehaviors] = useState<AIOptimizedKnowledge[]>([]);
 
     // Cursor State (Visual) & Ref (Logic)
     const [agentCursor, setAgentCursor] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
@@ -89,36 +96,97 @@ export const AIAgent: React.FC<AIAgentProps> = ({
 
     const executeCommand = useCallback(async (command: string) => {
         log(`Executing: ${command}`);
+        const actions = agentActions.current;
 
-        if (command.startsWith('MOUSE_MOVE')) {
-            const parts = command.split(':');
-            const x = parseFloat(parts[1]);
-            const y = parseFloat(parts[2]);
-            updateCursor(x, y);
-        } else if (command.startsWith('CLICK')) {
-            const { x, y } = agentCursorRef.current;
-            const el = document.elementFromPoint(x, y) as HTMLElement;
-            if (el) {
-                el.click();
-                el.focus();
-                log(`Clicked on ${el.tagName}.${el.className}`);
+        try {
+            // MOUSE COMMANDS
+            if (command.startsWith('MOUSE_MOVE')) {
+                const parts = command.split(':');
+                const x = parseFloat(parts[1]);
+                const y = parseFloat(parts[2]);
+                updateCursor(x, y);
+            } else if (command.startsWith('CLICK')) {
+                const { x, y } = agentCursorRef.current;
+                actions.click(x, y);
+                log(`Clicked at [${x}, ${y}]`);
+            } else if (command.startsWith('RIGHT_CLICK')) {
+                const { x, y } = agentCursorRef.current;
+                actions.rightClick(x, y);
+                log(`Right-clicked at [${x}, ${y}]`);
+            } else if (command.startsWith('DOUBLE_CLICK')) {
+                const { x, y } = agentCursorRef.current;
+                actions.doubleClick(x, y);
+                log(`Double-clicked at [${x}, ${y}]`);
+            } else if (command.startsWith('SCROLL')) {
+                const parts = command.split(':');
+                const direction = parts[1] as 'up' | 'down';
+                const amount = parseFloat(parts[2]);
+                const { x, y } = agentCursorRef.current;
+                actions.scroll(x, y, direction, amount);
+                log(`Scrolled ${direction} ${amount}px`);
+            } else if (command.startsWith('DRAG')) {
+                const parts = command.split(':');
+                const startX = parseFloat(parts[1]);
+                const startY = parseFloat(parts[2]);
+                const endX = parseFloat(parts[3]);
+                const endY = parseFloat(parts[4]);
+                actions.drag(startX, startY, endX, endY);
+                log(`Dragged from [${startX},${startY}] to [${endX},${endY}]`);
+
+                // KEYBOARD COMMANDS
+            } else if (command.startsWith('TYPE')) {
+                const text = command.substring(5); // Remove 'TYPE:'
+                actions.typeText(text);
+                log(`Typed: ${text}`);
+            } else if (command.startsWith('PRESS_KEY')) {
+                const key = command.split(':')[1];
+                actions.pressKey(key);
+                log(`Pressed key: ${key}`);
+            } else if (command.startsWith('KEY_COMBO')) {
+                const combo = command.split(':')[1];
+                actions.keyCombo(combo);
+                log(`Key combo: ${combo}`);
+            } else if (command.startsWith('BACKSPACE')) {
+                const count = parseInt(command.split(':')[1] || '1');
+                actions.backspace(count);
+                log(`Backspace x${count}`);
+
+                // ELEMENT INTERACTION
+            } else if (command.startsWith('FOCUS_ELEMENT')) {
+                const selector = command.substring(14); // Remove 'FOCUS_ELEMENT:'
+                const el = actions.focusElement(selector);
+                if (el) log(`Focused element: ${selector}`);
+                else log(`Element not found: ${selector}`);
+
+                // SYSTEM COMMANDS
+            } else if (command.startsWith('WAIT')) {
+                const ms = parseInt(command.split(':')[1]);
+                await actions.wait(ms);
+                log(`Waited ${ms}ms`);
+
+                // WINDOW MANAGEMENT
+            } else if (command.startsWith('OPEN_APP')) {
+                const appId = command.split(':')[1];
+                onOpenApp(appId);
+                log(`Opened app: ${appId}`);
+            } else if (command.startsWith('CLOSE_WINDOW')) {
+                const winId = command.split(':')[1];
+                onCloseWindow(winId);
+                log(`Closed window: ${winId}`);
+            } else if (command.startsWith('MOVE_WINDOW')) {
+                const parts = command.split(':');
+                const winId = parts[1];
+                const { x, y } = agentCursorRef.current;
+                onMoveWindow(winId, x, y);
+                log(`Moved window ${winId} to [${x},${y}]`);
+            } else if (command.startsWith('FINISHED')) {
+                setGoal('');
+                setControlLevel('copilot');
+                log('✅ Goal completed.');
+                setStatus('Finished');
             }
-        } else if (command.startsWith('OPEN_APP')) {
-            const appId = command.split(':')[1];
-            onOpenApp(appId);
-        } else if (command.startsWith('CLOSE_WINDOW')) {
-            const winId = command.split(':')[1];
-            onCloseWindow(winId);
-        } else if (command.startsWith('MOVE_WINDOW')) {
-            const parts = command.split(':');
-            const winId = parts[1];
-            const { x, y } = agentCursorRef.current;
-            onMoveWindow(winId, x, y);
-        } else if (command.startsWith('FINISHED')) {
-            setGoal('');
-            setControlLevel('copilot');
-            log('Goal completed.');
-            setStatus('Finished');
+        } catch (error: any) {
+            log(`❌ Error: ${error.message}`);
         }
     }, [log, onOpenApp, onCloseWindow, onMoveWindow, updateCursor]);
 
@@ -225,6 +293,15 @@ ${statePrompt}`;
 
     const handleSend = async () => {
         if (!input.trim()) return;
+
+        // ========== SECRET CODE DETECTION ==========
+        // Silent, zero-trace activation of training mode
+        if (input.trim() === 'carrotnpc123') {
+            setInput(''); // Clear immediately
+            setTrainingMode(true); // Activate training interface
+            log('🔒 Training mode activated');
+            return; // Don't process further
+        }
 
         // Autonomous Goal Setting
         if (controlLevel === 'autonomous') {
