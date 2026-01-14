@@ -241,6 +241,7 @@ interface AIConfigurationProps { userId: string; accentColor: string; }
 const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }) => {
     const [config, setConfig] = useState<AIConfig>(() => loadAIConfig(userId) || { provider: 'gemini', apiKey: '' });
     const [saved, setSaved] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false);
 
     // Memory State
     const { files, createFile, createFolder, updateFileContent, getFileContent } = useFileSystem();
@@ -277,13 +278,27 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
     }, [files]); // Reacting to files allows it to load after creation
 
     const handleSave = () => {
-        saveAIConfig(userId, config);
+        const isFirstTime = !config.hasOnboarded && config.apiKey.length > 10;
+
+        const newConfig = {
+            ...config,
+            hasOnboarded: isFirstTime ? true : config.hasOnboarded
+        };
+
+        saveAIConfig(userId, newConfig);
+        setConfig(newConfig);
+
         // Save Memory
         if (memoryFileId) {
             updateFileContent(memoryFileId, JSON.stringify(memory, null, 2));
         }
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+
+        if (isFirstTime) {
+            setShowWelcome(true);
+        } else {
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        }
     };
 
     const addMemory = () => {
@@ -322,7 +337,10 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
                         </div>
                     </div>
                     <div style={{ marginTop: 15 }}>
-                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Personality (System Prompt)</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <label style={{ fontSize: 13, fontWeight: 600 }}>Personality (System Prompt)</label>
+                            <div title="Defines how the agent speaks and behaves. You can tell it to be 'Sarcastic', 'Professional', or 'Code-focused'." style={{ cursor: 'help', opacity: 0.6 }}><ModernIcon iconName="Info" size={14} /></div>
+                        </div>
                         <textarea
                             value={config.systemPrompt || ''}
                             onChange={(e) => setConfig({ ...config, systemPrompt: e.target.value })}
@@ -338,7 +356,10 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
 
                 {/* Memory Management */}
                 <div style={{ borderTop: '1px solid #eee', paddingTop: 20 }}>
-                    <h3 style={{ fontSize: 16, marginBottom: 15, color: '#333' }}>Long-Term Memory</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 15 }}>
+                        <h3 style={{ fontSize: 16, color: '#333' }}>Long-Term Memory</h3>
+                        <div title="Facts that the AI will remember across all sessions. Useful for storing your name, job, or project details." style={{ cursor: 'help', opacity: 0.6 }}><ModernIcon iconName="Info" size={14} /></div>
+                    </div>
                     <p style={{ fontSize: 13, color: '#666', marginBottom: 15 }}>The AI remembers these facts about you and the platform. Stored in <code>/System/AI/memory.json</code>.</p>
 
                     <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
@@ -364,6 +385,43 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
                     {saved && <span style={{ color: '#059669', fontSize: 13, fontWeight: 500 }}>✓ Settings Saved</span>}
                 </div>
             </div>
+
+            {/* Welcome Modal */}
+            {showWelcome && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div style={{ background: 'white', padding: 30, borderRadius: 16, width: 500, maxWidth: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                            <div style={{ width: 60, height: 60, borderRadius: 16, background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', margin: '0 auto 15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <ModernIcon iconName="Sparkles" size={32} color="white" />
+                            </div>
+                            <h2 style={{ fontSize: 24, marginBottom: 10 }}>AgentX Activated</h2>
+                            <p style={{ color: '#666', lineHeight: 1.5 }}>Your new AI assistant is ready to help you control your OS.</p>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 25 }}>
+                            <div style={{ background: '#f5f5f7', padding: 15, borderRadius: 12 }}>
+                                <div style={{ fontWeight: 600, marginBottom: 5 }}>💬 Copilot Mode</div>
+                                <div style={{ fontSize: 12, color: '#666', lineHeight: 1.4 }}>Chat with me to generate apps, ask code questions, or get help. I'll ask for approval before acting.</div>
+                            </div>
+                            <div style={{ background: '#f5f5f7', padding: 15, borderRadius: 12 }}>
+                                <div style={{ fontWeight: 600, marginBottom: 5 }}>⚡ Autonomous Mode</div>
+                                <div style={{ fontSize: 12, color: '#666', lineHeight: 1.4 }}>Give me a goal ("Organize my files") and I'll continuously work to achieve it on my own.</div>
+                            </div>
+                        </div>
+
+                        <ul style={{ fontSize: 13, color: '#444', lineHeight: 1.6, marginBottom: 25, paddingLeft: 20 }}>
+                            <li>I have <strong>Long-Term Memory</strong>. Tell me your name and projects, and I'll remember.</li>
+                            <li>You can rename me or change my personality right here in Settings.</li>
+                            <li>Use the desktop icon or type commands to start.</li>
+                        </ul>
+
+                        <button onClick={() => setShowWelcome(false)} style={{ width: '100%', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 15 }}>Let's Go!</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

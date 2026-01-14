@@ -28,7 +28,7 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     onOpenApp
 }) => {
     const { currentUser } = useUser();
-    const { files, getFileContent } = useFileSystem();
+    const { files, getFileContent, createFile } = useFileSystem();
 
     // Config & Identity
     const [agentName, setAgentName] = useState('AgentX');

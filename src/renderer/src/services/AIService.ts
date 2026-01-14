@@ -5,6 +5,7 @@ export interface AIConfig {
   apiKey: string
   agentName?: string
   systemPrompt?: string
+  hasOnboarded?: boolean
 }
 
 export interface ChatMessage {
@@ -80,10 +81,10 @@ Web Apps (open in frame):
 Instructions:
 - If the user tells you something important (name, job, preference), call [COMMAND:SAVE_MEMORY:key:value].
 - APP GENERATION: To create a micro-app, use:
-[NOAH_APP_START:appName]
+[APP_START:appName]
 <!DOCTYPE html>
 ... code ...
-[NOAH_APP_END]
+[APP_END]
 - Speak naturally as ${agentName}.
 `;
   }
