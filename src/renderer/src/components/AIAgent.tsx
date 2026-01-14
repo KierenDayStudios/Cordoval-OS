@@ -5,6 +5,7 @@ import { useFileSystem } from './FileSystem';
 import { ModernIcon } from './ModernIcon';
 import { AgentActions } from '../services/AgentActions';
 import { getKnowledgeStore, AIOptimizedKnowledge } from '../services/SecureKnowledgeStore';
+import { AgentTrainer } from './AgentTrainer';
 
 // --- Types ---
 interface AIAgentProps {
@@ -67,7 +68,25 @@ export const AIAgent: React.FC<AIAgentProps> = ({
         // Load config to set name
         const config = loadAIConfig(currentUser?.id || 'default');
         if (config?.agentName) setAgentName(config.agentName);
-    }, [currentUser?.id, isOpen]); // Reload config when opened
+
+        // Load learned behaviors from secure storage
+        const loadKnowledge = async () => {
+            try {
+                const store = await getKnowledgeStore(currentUser?.id || 'default');
+                const knowledge = await store.load();
+                setLearnedBehaviors(knowledge);
+                if (knowledge.length > 0) {
+                    log(`📚 Loaded ${knowledge.length} learned behaviors`);
+                }
+            } catch (error) {
+                // Silent fail for non-developer users
+            }
+        };
+
+        if (isOpen) {
+            loadKnowledge();
+        }
+    }, [currentUser?.id, isOpen, log]); // Reload config when opened
 
     const isProcessingRef = useRef(false);
 
@@ -383,6 +402,23 @@ If generating an app, use [APP_START:name]...[APP_END].
 
     return (
         <>
+            {/* Training Mode Interface */}
+            <AgentTrainer
+                isOpen={trainingMode}
+                onClose={() => setTrainingMode(false)}
+                userId={currentUser?.id || 'default'}
+                learnedBehaviors={learnedBehaviors}
+                onBehaviorsUpdated={async () => {
+                    try {
+                        const store = await getKnowledgeStore(currentUser?.id || 'default');
+                        const knowledge = await store.load();
+                        setLearnedBehaviors(knowledge);
+                    } catch (error) {
+                        // Silent fail
+                    }
+                }}
+            />
+
             {/* Agent Window */}
             <div style={{
                 position: 'fixed',
