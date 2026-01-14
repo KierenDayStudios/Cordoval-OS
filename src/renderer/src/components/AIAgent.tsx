@@ -27,11 +27,11 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     windows,
     onMoveWindow,
     onCloseWindow,
-    onFocusWindow,
+    // onFocusWindow,
     onOpenApp
 }) => {
     const { currentUser } = useUser();
-    const { files, getFileContent, createFile } = useFileSystem();
+    const { files, createFile } = useFileSystem();
 
     // Config & Identity
     const [agentName, setAgentName] = useState('AgentX');
@@ -110,7 +110,7 @@ export const AIAgent: React.FC<AIAgentProps> = ({
     }, [files]);
 
     // --- Agent Actions ---
-    const log = useCallback((msg: string) => setLogs(prev => [msg, ...prev].slice(0, 50)), []);
+    // Log function moved to top for initialization access
 
     const updateCursor = useCallback((x: number, y: number) => {
         setAgentCursor({ x, y });

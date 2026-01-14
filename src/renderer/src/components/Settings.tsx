@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../App.css';
 import { useUser } from '../context/UserContext';
 import { useFileSystem } from './FileSystem';
@@ -244,7 +244,7 @@ const AIConfiguration: React.FC<AIConfigurationProps> = ({ userId, accentColor }
     const [showWelcome, setShowWelcome] = useState(false);
 
     // Memory State
-    const { files, createFile, createFolder, updateFileContent, getFileContent } = useFileSystem();
+    const { files, createFile, createFolder, updateFileContent } = useFileSystem();
     const [memory, setMemory] = useState<Record<string, string>>({});
     const [newKey, setNewKey] = useState('');
     const [newValue, setNewValue] = useState('');

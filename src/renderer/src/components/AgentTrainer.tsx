@@ -441,7 +441,7 @@ export const AgentTrainer: React.FC<AgentTrainerProps> = ({
                                 Completed {observations.length} of {targetAttempts} attempts
                             </div>
 
-                            {observations.map((obs, idx) => (
+                            {observations.map((obs) => (
                                 <div
                                     key={obs.sessionId}
                                     style={{

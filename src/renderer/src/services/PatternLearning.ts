@@ -1,4 +1,4 @@
-import { VisualRecognition } from './VisualRecognition';
+// import { VisualRecognition } from './VisualRecognition';
 import { AIOptimizedKnowledge } from './SecureKnowledgeStore';
 
 /**
@@ -89,10 +89,10 @@ export interface ExtractedPattern {
  * Analyzes multiple repetitions of a task to extract learnable patterns
  */
 export class PatternLearningEngine {
-  private visualRecognition: VisualRecognition;
+//   private visualRecognition: VisualRecognition;
 
   constructor() {
-    this.visualRecognition = new VisualRecognition();
+//     this.visualRecognition = new VisualRecognition();
   }
 
   /**
@@ -132,8 +132,8 @@ export class PatternLearningEngine {
         pattern.variants.push({
           step: stepIndex,
           description: analysis.description,
-          variationType: analysis.variationType,
-          values: analysis.values,
+          variationType: analysis.variationType || 'choice', // Default to choice if undefined
+          values: analysis.values || [],
           average: analysis.average
         });
       }
@@ -230,10 +230,10 @@ export class PatternLearningEngine {
   /**
    * Analyzes mouse click actions
    */
-  private analyzeMouseActions(actions: RawAction[], stepIndex: number): any {
+  private analyzeMouseActions(actions: RawAction[], _stepIndex: number): any {
     // Check if clicking same element (by text/id)
     const elementTexts = actions.map(a => a.data.element?.text).filter(Boolean);
-    const elementIds = actions.map(a => a.data.element?.id).filter(Boolean);
+    // const elementIds = actions.map(a => a.data.element?.id).filter(Boolean);
     
     // Check for invariant element
     if (elementTexts.length > 0) {
@@ -290,7 +290,7 @@ export class PatternLearningEngine {
   /**
    * Analyzes keyboard actions
    */
-  private analyzeKeyboardActions(actions: RawAction[], stepIndex: number): any {
+  private analyzeKeyboardActions(actions: RawAction[], _stepIndex: number): any {
     // Check if typing same text
     const texts = actions.map(a => a.data.text).filter(Boolean);
     const keys = actions.map(a => a.data.key).filter(Boolean);
@@ -343,7 +343,7 @@ export class PatternLearningEngine {
   /**
    * Analyzes scroll actions
    */
-  private analyzeScrollActions(actions: RawAction[], stepIndex: number): any {
+  private analyzeScrollActions(actions: RawAction[], _stepIndex: number): any {
     const deltas = actions.map(a => a.data.deltaY || 0);
     const avgDelta = Math.round(deltas.reduce((sum, d) => sum + d, 0) / deltas.length);
     const variance = this.calculateNumberVariance(deltas);
@@ -417,7 +417,7 @@ export class PatternLearningEngine {
         timesExecuted: 0,
         successRate: 0,
         avgExecutionTime: 0,
-        lastFailureReason: null
+        lastFailureReason: undefined
       },
       
       confidence: Math.min(0.7 + (pattern.totalAttempts * 0.1), 0.95),
