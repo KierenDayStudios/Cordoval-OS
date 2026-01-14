@@ -23,7 +23,8 @@ export interface AIOptimizedKnowledge {
     }>;
   };
   
-  // Pattern learning  observations: Array<{
+  // Pattern learning observations
+  observations: Array<{
     attemptNumber: number;
     timestamp: Date;
     rawActions: any[];
@@ -79,7 +80,7 @@ export class SecureKnowledgeStore {
           hash: 'SHA-256'
         },
         keyMaterial,
-        { name: this.ALGORITHM, length: 256 },
+        { name: SecureKnowledgeStore.ALGORITHM, length: 256 },
         false,
         ['encrypt', 'decrypt']
       );
@@ -105,7 +106,7 @@ export class SecureKnowledgeStore {
       const encoded = new TextEncoder().encode(JSON.stringify(knowledge));
 
       const encrypted = await window.crypto.subtle.encrypt(
-        { name: this.ALGORITHM, iv },
+        { name: SecureKnowledgeStore.ALGORITHM, iv },
         this.masterKey,
         encoded
       );
@@ -140,7 +141,7 @@ export class SecureKnowledgeStore {
       const data = new Uint8Array(payload.data);
 
       const decrypted = await window.crypto.subtle.decrypt(
-        { name: this.ALGORITHM, iv },
+        { name: SecureKnowledgeStore.ALGORITHM, iv },
         this.masterKey,
         data
       );
