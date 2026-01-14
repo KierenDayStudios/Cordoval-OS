@@ -1,8 +1,10 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import * as electron from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { release } from 'node:os'
 import { join } from 'node:path'
 import { exec } from 'node:child_process'
+
+const { app, BrowserWindow, shell, ipcMain } = electron
 
 // Disable GPU Acceleration for Windows 7
 if (release().startsWith('6.1')) app.disableHardwareAcceleration()
