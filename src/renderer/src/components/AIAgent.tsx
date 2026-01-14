@@ -254,6 +254,7 @@ Memory: ${memContext}
 [COPILOT MODE]
 Context: Windows: ${windowList}, Screen: ${window.innerWidth}x${window.innerHeight}.
 Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], etc.
+If generating an app, use [APP_START:name]...[APP_END].
 `;
 
         try {
@@ -277,7 +278,23 @@ Output commands if needed: [COMMAND:OPEN_APP:id], [COMMAND:MOVE_WINDOW:id:x:y], 
                 }
             }
 
-            setMessages(prev => [...prev, { role: 'assistant', content: response.replace(/\[COMMAND:.+?\]/g, '') }]);
+            // Handle App Generation
+            const appMatch = response.match(/\[APP_START:(.+?)\]([\s\S]*?)\[APP_END\]/);
+            if (appMatch) {
+                const appName = appMatch[1].trim();
+                const appContent = appMatch[2].trim();
+                const uniqueName = `${appName.toLowerCase().replace(/\s+/g, '_')}_${Date.now().toString().slice(-4)}.html`;
+
+                // Save to Desktop
+                let parentId = 'root';
+                // Try to find Desktop
+                const desktop = files.find(f => f.name === 'Desktop' && f.type === 'folder');
+                if (desktop) parentId = desktop.id;
+
+                createFile(uniqueName, appContent, 'text/html', parentId);
+            }
+
+            setMessages(prev => [...prev, { role: 'assistant', content: response.replace(/\[COMMAND:.+?\]/g, '').replace(/\[APP_START:[\s\S]+?\[APP_END\]/g, `✨ Generated App: ${appMatch?.[1] || 'App'}`) }]);
             setStatus('Idle');
         } catch (e) {
             log('Error connecting to AI');
