@@ -1,5 +1,15 @@
 import { app, BrowserWindow, shell, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
+
+try {
+  const electron = require('electron')
+  console.log('DEBUG: process.versions:', process.versions)
+  console.log('DEBUG: electron require result:', typeof electron, electron)
+  console.log('DEBUG: app from import:', app)
+} catch (e) {
+  console.error('DEBUG: Failed to require electron', e)
+}
+
 import { release } from 'node:os'
 import { join } from 'node:path'
 import { exec } from 'node:child_process'
