@@ -56,6 +56,10 @@ export const AIAgent: React.FC<AIAgentProps> = ({
 
     const [logs, setLogs] = useState<string[]>(['Agent initialized.']);
 
+    const log = useCallback((message: string) => {
+        setLogs(prev => [message, ...prev].slice(0, 50));
+    }, []);
+
     // Chat & Goal
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
